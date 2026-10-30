@@ -1221,6 +1221,18 @@ pub fn save_setting_file(
     Ok(settings)
 }
 
+/// Smooth migration from previous Bloom settings if MEERA settings don't exist yet.
+pub fn migrate_bloom_settings_if_needed(bloom_path: &std::path::Path, meera_path: &std::path::Path) -> bool {
+    if !meera_path.exists() && bloom_path.exists() {
+        if let Some(parent) = meera_path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::copy(bloom_path, meera_path).is_ok()
+    } else {
+        false
+    }
+}
+
 /// Load settings.json into the in-memory cache. Call once at startup.
 pub fn init_settings_cache(app: &tauri::AppHandle) {
     use crate::state::SETTINGS_CACHE;
@@ -1237,12 +1249,7 @@ pub fn init_settings_cache(app: &tauri::AppHandle) {
         if !path.exists() {
             if let Ok(appdata) = std::env::var("APPDATA") {
                 let bloom_settings = std::path::PathBuf::from(appdata).join("bloom").join("settings.json");
-                if bloom_settings.exists() {
-                    if let Some(parent) = path.parent() {
-                        let _ = std::fs::create_dir_all(parent);
-                    }
-                    let _ = std::fs::copy(&bloom_settings, &path);
-                }
+                let _ = migrate_bloom_settings_if_needed(&bloom_settings, &path);
             }
         }
 
@@ -1854,5 +1861,37 @@ mod tests {
         assert!(!dock_setting_enabled(Some(&serde_json::json!("false"))));
         assert!(!dock_setting_enabled(Some(&serde_json::json!("invalid"))));
         assert!(!dock_setting_enabled(Some(&serde_json::json!(true))));
+    }
+
+    #[test]
+    fn test_bloom_to_meera_settings_migration() {
+        use super::migrate_bloom_settings_if_needed;
+        let temp_dir = std::env::temp_dir().join(format!("meera_migration_test_{}", std::process::id()));
+        let _ = std::fs::create_dir_all(&temp_dir);
+        let bloom_file = temp_dir.join("bloom_settings.json");
+        let meera_file = temp_dir.join("meera_settings.json");
+
+        // 1. When bloom doesn't exist, migration returns false
+        assert!(!migrate_bloom_settings_if_needed(&bloom_file, &meera_file));
+
+        // 2. Create bloom settings
+        let bloom_data = r#"{"bloom-theme-mode":"dark","bloom-dock-size":"medium"}"#;
+        std::fs::write(&bloom_file, bloom_data).unwrap();
+
+        // 3. When meera doesn't exist and bloom exists, migration succeeds
+        assert!(migrate_bloom_settings_if_needed(&bloom_file, &meera_file));
+        assert!(meera_file.exists());
+        assert_eq!(std::fs::read_to_string(&meera_file).unwrap(), bloom_data);
+        // Original bloom settings remain intact
+        assert_eq!(std::fs::read_to_string(&bloom_file).unwrap(), bloom_data);
+
+        // 4. When meera already exists with its own settings, migration does not overwrite
+        let meera_updated = r#"{"bloom-theme-mode":"light","bloom-dock-size":"large"}"#;
+        std::fs::write(&meera_file, meera_updated).unwrap();
+        assert!(!migrate_bloom_settings_if_needed(&bloom_file, &meera_file));
+        assert_eq!(std::fs::read_to_string(&meera_file).unwrap(), meera_updated);
+        assert_eq!(std::fs::read_to_string(&bloom_file).unwrap(), bloom_data);
+
+        let _ = std::fs::remove_dir_all(&temp_dir);
     }
 }
