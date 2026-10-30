@@ -48,15 +48,14 @@ export function AboutTab({
 			<div className="about-header">
 				<img src="/meera.png" className="about-logo" alt="MEERA Logo" draggable={false} />
 				<h1 className="about-title">MEERA</h1>
-				<p className="about-version">Desktop Companion · Version {appVersion}</p>
+				<p className="about-version">DESKTOP COMPANION · VERSION {appVersion}</p>
 				<p className="about-author-highlight">
 					Created by <strong>AJAI SELVARAJ</strong>
 				</p>
 				<p className="about-credit">
-					Engineered with Rust, Tauri v2 & React for Windows 11.
-					<br />
 					Original open-source foundation by{" "}
 					<button
+						type="button"
 						className="about-author"
 						onClick={() => openUrl("https://github.com/SehajveerSingh2005/bloom")}
 						title="Sehajveer Singh on GitHub"

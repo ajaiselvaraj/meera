@@ -50,7 +50,7 @@ const TABS: { id: SettingsTab; label: string; icon: typeof Settings }[] = [
 ];
 
 const TAB_COPY: Record<SettingsTab, string> = {
-	general: "The essentials for how Bloom starts and runs.",
+	general: "The essentials for how MEERA starts and runs.",
 	appearance: "Make every surface feel at home on your desktop.",
 	notch: "Choose what appears at the top of your screen.",
 	dock: "Shape the taskbar replacement around your workflow.",
@@ -63,7 +63,15 @@ const TAB_COPY: Record<SettingsTab, string> = {
 };
 
 function SettingsApp() {
-	const [activeTab, setActiveTab] = useState<SettingsTab>("general");
+	const [activeTab, setActiveTab] = useState<SettingsTab>(() => {
+		try {
+			const param = new URLSearchParams(window.location.search).get("tab") as SettingsTab;
+			if (param && TABS.some((t) => t.id === param)) return param;
+			const stored = localStorage.getItem("meera-settings-tab") as SettingsTab;
+			if (stored && TABS.some((t) => t.id === stored)) return stored;
+		} catch {}
+		return "general";
+	});
 	const [previewFocus] = useState("");
 	const contentRef = useRef<HTMLDivElement>(null);
 	const settings = useSettings();
@@ -132,15 +140,15 @@ function SettingsApp() {
 	const currentTabLabel = TABS.find((t) => t.id === activeTab)?.label ?? "Settings";
 
 	return (
-		<div className="settings-window">
+		<div
+			className="settings-window settings-container"
+			style={{ zoom: settings.scale }}
+			inert={isClosing}
+		>
 			<div className="settings-sidebar" data-tauri-drag-region>
-				<div className="sidebar-traffic-lights">
-					<button
-						className="traffic-light close"
-						onClick={closeSettings}
-						aria-label="Close"
-						disabled={isClosing}
-					/>
+				<div className="settings-sidebar-intro" data-tauri-drag-region>
+					<strong>MEERA</strong>
+					<span>Desktop Companion</span>
 				</div>
 
 				<div className="sidebar-tabs">
@@ -149,10 +157,12 @@ function SettingsApp() {
 						const isActive = activeTab === tab.id;
 						return (
 							<button
+								type="button"
 								key={tab.id}
 								className={`sidebar-tab ${isActive ? "active" : ""}`}
 								onClick={() => {
 									setActiveTab(tab.id);
+									try { localStorage.setItem("meera-settings-tab", tab.id); } catch {}
 									contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
 								}}
 							>
@@ -175,12 +185,14 @@ function SettingsApp() {
 						</p>
 					</div>
 					<button
+						type="button"
 						className="header-close-btn"
 						onClick={closeSettings}
-						aria-label="Close"
+						aria-label="Close settings"
+						title="Close settings"
 						disabled={isClosing}
 					>
-						<X size={16} />
+						<X size={15} strokeWidth={2} />
 					</button>
 				</div>
 
