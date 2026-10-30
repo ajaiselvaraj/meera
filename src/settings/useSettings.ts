@@ -902,11 +902,13 @@ export function useSettings() {
 		setCityName(city.name);
 		setShowCityDropdown(false);
 		setCitySearchResults([]);
+		const latRounded = Math.round(city.latitude * 100) / 100;
+		const lonRounded = Math.round(city.longitude * 100) / 100;
 		const saved =
-			(await saveLocation("bloom-weather-lat", city.latitude.toString())) &&
-			(await saveLocation("bloom-weather-lon", city.longitude.toString())) &&
+			(await saveLocation("bloom-weather-lat", latRounded.toString())) &&
+			(await saveLocation("bloom-weather-lon", lonRounded.toString())) &&
 			(await saveSetting("bloom-weather-city", city.name));
-		if (saved) emit("weather-refresh", { lat: city.latitude, lon: city.longitude });
+		if (saved) emit("weather-refresh", { lat: latRounded, lon: lonRounded });
 	};
 
 	const handleCityClear = async () => {

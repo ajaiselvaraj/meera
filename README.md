@@ -1,11 +1,15 @@
 <div align="center">
 
 <img 
-  src="https://github.com/user-attachments/assets/962887ec-636b-4e0f-90eb-0862c0feefca" 
+  src="./public/meera.svg" 
   width="72"
 />
 
-# Bloom
+# MEERA
+
+**Premium Desktop Companion for Windows 11**  
+Created by **AJAI SELVARAJ**  
+*Original open-source foundation by Sehajveer Singh (GPL-3.0)*
 
 <br/>
 
@@ -165,18 +169,16 @@ Found a bug? Open an issue.
 Have an idea? Open a feature request first — we'll agree on the approach before you write code. See [CONTRIBUTING.md](CONTRIBUTING.md).
 Want to just say it's cool? A star goes a long way.
 
-## Keep it blooming
+## Credits & License
 
-Bloom runs on spring physics. I run on coffee.
-
-[Buy me a coffee ↗](https://buymeacoffee.com/sehaz)
-
-Licensed under [GPLv3](LICENSE).
+- **MEERA Author & Creator:** AJAI SELVARAJ
+- **Original Open-Source Base:** [Bloom](https://github.com/SehajveerSingh2005/bloom) by Sehajveer Singh
+- **License:** Licensed under [GNU General Public License v3.0](LICENSE).
 
 ---
 
 <div align="center">
 
-**Your desktop is waiting.**
+**MEERA — Your desktop is waiting.**
 
 </div>

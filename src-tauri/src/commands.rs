@@ -73,6 +73,17 @@ pub async fn shelf_thumbnail(path: String) -> crate::shelf_preview::ShelfPreview
 /// which an empty capability would deny for every file.
 #[tauri::command]
 pub async fn shelf_open(path: String) -> Result<(), String> {
+    let p = std::path::Path::new(&path);
+    if !p.exists() {
+        return Err("File does not exist".into());
+    }
+    // Disallow executing script files directly from shelf previews
+    if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
+        let lower = ext.to_lowercase();
+        if matches!(lower.as_str(), "bat" | "cmd" | "ps1" | "vbs" | "js" | "wsf") {
+            return Err("Direct script execution from shelf is disabled".into());
+        }
+    }
     tauri_plugin_opener::open_path(&path, None::<&str>).map_err(|e| e.to_string())
 }
 
@@ -726,11 +737,79 @@ fn is_pwa_shortcut_for(app: &AppInfo, name: &str, host_exe: &str) -> bool {
 }
 
 /// Opens a file path, shortcut, or shell application id through the shell.
+pub fn is_safe_launch_target(path: &str) -> bool {
+    let trimmed = path.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    // Block control characters and command injection / pipe operators
+    if trimmed.chars().any(|c| c.is_control() || matches!(c, '|' | '&' | ';' | '<' | '>')) {
+        return false;
+    }
+    // Block direct script execution before any other checks
+    if let Some(ext) = std::path::Path::new(trimmed).extension().and_then(|e| e.to_str()) {
+        let lower_ext = ext.to_ascii_lowercase();
+        if matches!(lower_ext.as_str(), "bat" | "cmd" | "ps1" | "vbs" | "js" | "wsf" | "scr" | "hta") {
+            return false;
+        }
+    }
+    let lower = trimmed.to_lowercase();
+    // Block web and script URI protocols
+    if lower.starts_with("http://")
+        || lower.starts_with("https://")
+        || lower.starts_with("javascript:")
+        || lower.starts_with("data:")
+        || lower.starts_with("vbscript:")
+        || lower.starts_with("file:")
+    {
+        return false;
+    }
+    // Allow recognized safe Windows URI schemes
+    if lower.starts_with("ms-settings:") {
+        return trimmed.chars().all(|c| c.is_alphanumeric() || matches!(c, ':' | '-' | '.' | '_'));
+    }
+    // Allow explorer.exe opening a folder
+    if lower.starts_with("explorer.exe ") {
+        let folder = trimmed["explorer.exe ".len()..].trim();
+        let expanded = crate::utils::expand_env_vars(folder);
+        return std::path::Path::new(&expanded).exists();
+    }
+    if is_aumid_path(trimmed) || lower.starts_with("shell:appsfolder\\") {
+        return true;
+    }
+    true
+}
+
 fn launch_path(path: &str) {
+    if !is_safe_launch_target(path) {
+        eprintln!("Blocked unsafe launch target: {}", path);
+        return;
+    }
+
     unsafe {
         use windows::Win32::UI::Shell::ShellExecuteW;
         use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
         let wide_open: Vec<u16> = "open".encode_utf16().chain(std::iter::once(0)).collect();
+
+        // Special handling for opening folders via explorer.exe
+        if let Some(folder_part) = path.strip_prefix("explorer.exe ") {
+            let folder = folder_part.trim();
+            let expanded = crate::utils::expand_env_vars(folder);
+            let wide_explorer: Vec<u16> = "explorer.exe".encode_utf16().chain(std::iter::once(0)).collect();
+            let wide_arg: Vec<u16> = expanded.encode_utf16().chain(std::iter::once(0)).collect();
+            let res = ShellExecuteW(
+                None,
+                windows::core::PCWSTR(wide_open.as_ptr()),
+                windows::core::PCWSTR(wide_explorer.as_ptr()),
+                windows::core::PCWSTR(wide_arg.as_ptr()),
+                None,
+                SW_SHOWNORMAL,
+            );
+            if res.0 as usize <= 32 {
+                eprintln!("Failed to open folder {}: error code {}", expanded, res.0 as usize);
+            }
+            return;
+        }
 
         // Shortcuts and shell app ids must be launched through the shell itself so
         // that arguments (Chrome/Edge PWAs) and package identities (Store apps) survive.
@@ -4162,6 +4241,28 @@ mod pwa_icon_tests {
         ));
         assert!(!is_bloom_launch_target("C:\\Apps\\Discord.exe", identifier));
         assert!(!is_bloom_launch_target("com.other.app", identifier));
+    }
+
+    #[test]
+    fn safe_launch_target_validation() {
+        use super::is_safe_launch_target;
+        // Valid targets
+        assert!(is_safe_launch_target("ms-settings:notifications"));
+        assert!(is_safe_launch_target("ms-settings:sound"));
+        assert!(is_safe_launch_target("Microsoft.VisualStudioCode"));
+        assert!(is_safe_launch_target("shell:AppsFolder\\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"));
+        assert!(is_safe_launch_target("C:\\Windows\\System32\\notepad.exe"));
+        assert!(is_safe_launch_target("C:\\shortcuts\\browser.lnk"));
+
+        // Dangerous / invalid targets
+        assert!(!is_safe_launch_target(""));
+        assert!(!is_safe_launch_target("cmd.exe | calc.exe"));
+        assert!(!is_safe_launch_target("powershell.exe & notepad.exe"));
+        assert!(!is_safe_launch_target("https://example.com"));
+        assert!(!is_safe_launch_target("javascript:alert(1)"));
+        assert!(!is_safe_launch_target("script.bat"));
+        assert!(!is_safe_launch_target("payload.ps1"));
+        assert!(!is_safe_launch_target("evil.vbs"));
     }
 
     #[test]

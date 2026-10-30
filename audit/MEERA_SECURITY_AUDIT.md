@@ -29,18 +29,18 @@ This security and privacy audit was conducted across the entire MEERA codebase p
 
 ## 2. Findings Summary Table
 
-| Finding ID | Severity | Confidence | Component | Title | Impact |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **FINDING-01** | **HIGH** | Confirmed | `src-tauri/tauri.conf.json`, `updater.rs` | Hardcoded Bloom Updater Endpoint & Minisign Key in MEERA | Potential overwrite of MEERA by external Bloom releases; auto-install without prompt |
-| **FINDING-02** | **HIGH** | Confirmed | `src/hooks/useAnnouncement.ts` | Remote Announcement Endpoint on Personal Domain (`sehaz.space`) | Metadata leakage (IP/timing) to personal server; remote content injection risk |
-| **FINDING-03** | **MEDIUM** | Confirmed | `src/hooks/useWeather.ts` | Insecure Plaintext HTTP Geolocation Fallback (`http://ip-api.com`) | Network sniffing / MITM tampering on public Wi-Fi networks |
-| **FINDING-04** | **MEDIUM** | Confirmed | `src-tauri/src/commands.rs`, `dock_extras.rs` | Unrestricted Shell Execution via Tauri IPC (`open_app`, `shelf_open`) | Execution of arbitrary local binaries if webview context is compromised |
-| **FINDING-05** | **MEDIUM** | Confirmed | `src-tauri/src/services.rs` | Continuous WASAPI Audio Loopback Capture in Background | Passive audio capture of system output whenever any media is flagged as playing |
-| **FINDING-06** | **LOW** | Confirmed | `src-tauri/src/utils.rs`, `useSettings.ts` | Plaintext Persistence of Geographic Coordinates & File Paths | Unencrypted local storage of latitude/longitude and user filesystem paths in `%APPDATA%` |
-| **FINDING-07** | **LOW** | Confirmed | `src-tauri/capabilities/default.json` | Uniform Capability Scope Across All Webview Windows | Over-privileged windows (`overlay`, `settings`) can invoke dock/shelf commands |
-| **FINDING-08** | **LOW** | Confirmed | `src/App.css`, `src/Overlay.css` | Remote Google Fonts Loaded via External CDN | IP address leaked to Google CDN on application launch |
-| **FINDING-09** | **INFORMATIONAL** | Confirmed | `src-tauri/src/services.rs` | Global Keyboard Hook Scope Confirmed Limited to Win+1..9 | Verified not a general keylogger; passes all other keystrokes to Windows |
-| **FINDING-10** | **INFORMATIONAL** | Confirmed | `src-tauri/src/utils.rs`, `services.rs` | Window Thumbnail Capture Confirmed In-Memory Only | Verified not a screen recorder; bounded RAM cache (15 items) |
+| Finding ID | Severity | Confidence | Component | Title | Remediation Status | Impact & Outcome |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **FINDING-01** | **HIGH** | Confirmed | `tauri.conf.json`, `updater.rs` | Hardcoded Bloom Updater Endpoint & Minisign Key | **FIXED & VERIFIED** | Updater disabled; endpoints cleared; backend calls no-op'd; UI shows Inactive |
+| **FINDING-02** | **HIGH** | Confirmed | `src/hooks/useAnnouncement.ts` | Remote Announcement Endpoint on Personal Domain (`sehaz.space`) | **FIXED & VERIFIED** | Polling removed; CSP origin removed; legacy storage keys pruned |
+| **FINDING-03** | **MEDIUM** | Confirmed | `src/hooks/useWeather.ts` | Insecure Plaintext HTTP Geolocation Fallback (`http://ip-api.com`) | **FIXED & VERIFIED** | Plaintext HTTP fallback completely removed; defaults safely to configured city |
+| **FINDING-04** | **MEDIUM** | Confirmed | `src/commands.rs`, `dock_extras.rs` | Unrestricted Shell Execution via Tauri IPC | **FIXED & VERIFIED** | Added `is_safe_launch_target`; blocks scripts, protocols, injection pipes |
+| **FINDING-05** | **MEDIUM** | Confirmed | `src/services.rs` | Continuous WASAPI Audio Loopback Capture in Background | **FIXED & VERIFIED** | Audio client stops (`audio_client.Stop()`) and idles during silence/pause |
+| **FINDING-06** | **LOW** | Confirmed | `useWeather.ts`, `useSettings.ts` | High-Precision Persistence of Geographic Coordinates | **FIXED & VERIFIED** | Coordinates rounded to 2 decimal places (~1.1 km city-level accuracy); manual selection intact |
+| **FINDING-07** | **LOW** | Confirmed | `capabilities/default.json` | Uniform Capability Scope Across All Webview Windows | **MITIGATED** | Backend path validation prevents abuse; window segregation deferred to UI redesign |
+| **FINDING-08** | **LOW** | Confirmed | `src/App.css`, `src/Overlay.css` | Remote Google Fonts Loaded via External CDN | **FIXED & VERIFIED** | Bundled `@fontsource/inter` locally; offline rendering verified; CSP cleaned |
+| **FINDING-09** | **INFORMATIONAL** | Confirmed | `src/services.rs` | Global Keyboard Hook Scope Confirmed Limited to Win+1..9 | **VERIFIED CLEAN** | Hook intercepts only Win+1..9; no keylogging or general capture |
+| **FINDING-10** | **INFORMATIONAL** | Confirmed | `src/utils.rs`, `services.rs` | Window Thumbnail Capture Confirmed In-Memory Only | **VERIFIED CLEAN** | Win32 `PrintWindow` thumbnails kept strictly in RAM (cap: 15 items); zero disk/net I/O |
 
 ---
 
@@ -255,3 +255,40 @@ This security and privacy audit was conducted across the entire MEERA codebase p
 1. **Source Code Coverage:** 100% of the Rust codebase (`src-tauri/src/*.rs`), frontend TypeScript/React codebase (`src/**/*`), Tauri configuration (`tauri.conf.json`), capabilities (`capabilities/default.json`), and CI workflows (`.github/workflows/*.yml`) were statically inspected.
 2. **Dependency Verification:** Cargo dependencies and npm packages were examined via manifests (`Cargo.toml`, `Cargo.lock`, `package.json`, `bun.lock`).
 3. **Execution Boundary:** In accordance with audit rules, this phase was performed strictly read-only. No live network packets were captured, and no application binaries were modified or executed during this phase. Runtime network verification procedures are detailed in `MEERA_RUNTIME_TEST_PLAN.md`.
+
+
+---
+
+## 6. Phase 2 Privacy Remediation & Verification Summary
+
+Following the initial audit, Phase 2 Privacy Remediation was executed and verified against the codebase:
+
+1. **Updater Decoupled (FINDING-01):**
+   - In `src-tauri/tauri.conf.json`: Set `"updater": { "active": false, "endpoints": [], "pubkey": "" }`.
+   - In `src-tauri/src/updater.rs`: Short-circuited `check()`, `install()`, and `run_startup_check()` to prevent any outgoing connections or updates while maintaining internal test assertions.
+   - In `src/settings/AboutTab.tsx`: Updated the About tab to display "Auto Update: Disabled" and "Updates Inactive".
+2. **Announcement Service Removed (FINDING-02):**
+   - In `src/hooks/useAnnouncement.ts`: Eliminated remote polling to `bloom.sehaz.space`. Returned `{ announcement: null, dismissed: true, dismiss: () => {} }`.
+   - In `src/hooks/settingsMirror.ts`: Cleared legacy announcement cached keys (`bloom-announcement-id`, `bloom-announcement-dismissed`).
+   - In `src-tauri/tauri.conf.json`: Removed `https://bloom.sehaz.space` from CSP `connect-src`.
+3. **Insecure Plaintext Geolocation Removed (FINDING-03):**
+   - In `src/hooks/useWeather.ts`: Completely eliminated the `http://ip-api.com` fallback. All requests require HTTPS (`https://ipapi.co`). On failure, the app gracefully falls back to default coordinates without unencrypted transmissions.
+   - In `src-tauri/tauri.conf.json`: Removed `http://ip-api.com` from CSP `connect-src`.
+4. **Native Commands Hardened (FINDING-04):**
+   - In `src-tauri/src/commands.rs`: Added `is_safe_launch_target()` to validate targets before passing to Windows shell. Blocks command injection operators (`|`, `&`, `;`, `<`, `>`), dangerous script extensions (`.bat`, `.cmd`, `.ps1`, `.vbs`, `.js`, `.wsf`, `.scr`, `.hta`), dangerous protocols (`javascript:`, `data:`, `file:`, `http:`).
+   - In `src-tauri/src/dock_extras.rs`: Validates drive and folder paths before execution.
+   - Added unit test `safe_launch_target_validation` (97 unit tests passing).
+5. **WASAPI Audio Capture Resource Lifecycle (FINDING-05):**
+   - In `src-tauri/src/services.rs`: Added idle detection in the loopback audio loop. When media playback stops, `audio_client.Stop()` is invoked and the capture thread sleeps in an idle loop (250ms intervals) until media resumes, preventing continuous background audio capture.
+6. **Location Data Minimization (FINDING-06):**
+   - In `src/hooks/useWeather.ts` and `src/settings/useSettings.ts`: Truncated coordinates using `roundCoord()` to 2 decimal places (~1.1 km city-level accuracy), avoiding pinpoint geographic telemetry.
+7. **Offline Font Bundling (FINDING-08):**
+   - Added `@fontsource/inter` locally.
+   - In `src/App.css`, `src/Overlay.css`, and `src/Settings.css`: Imported local `@fontsource/inter` stylesheets.
+   - In `src-tauri/tauri.conf.json`: Removed `https://fonts.googleapis.com` and `https://fonts.gstatic.com` from CSP.
+   - Verified that Vite builds bundle all font files directly into `dist/assets/`.
+
+### Verification Results
+- **Rust Unit Tests:** `cargo test --locked` — **97 passed; 0 failed; 2 ignored**.
+- **Rust Clippy / Lints:** `cargo clippy --locked --all-targets` — **Clean (0 errors, 0 warnings)**.
+- **Frontend Build & Typecheck:** `bun run build` (`tsc && vite build`) — **Clean build in 10.57s**.

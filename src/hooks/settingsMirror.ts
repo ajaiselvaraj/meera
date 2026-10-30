@@ -5,13 +5,18 @@ const LOCAL_ONLY_KEYS = new Set([
 	"bloom-first-run",
 	"bloom-app-version",
 	"bloom-timer-last-duration",
-	"bloom-announcement-cache",
-	"bloom-announcement-cache-at",
 	// Notch shelf contents; persisted only when bloom-shelf-persist is on.
 	"bloom-shelf-items",
 	// Legacy name, only read as a fallback for bloom-media-visualizer-enabled.
 	"bloom-visualizer-enabled"
 ]);
+
+// Clean up obsolete announcement caches from local storage
+try {
+	localStorage.removeItem("bloom-announcement-cache");
+	localStorage.removeItem("bloom-announcement-cache-at");
+	localStorage.removeItem("bloom-announcement-dismissed");
+} catch {}
 
 // What this window's first render saw: useState initializers read localStorage.
 const mirroredAtStartup = Object.keys(localStorage).filter((key) => key.startsWith("bloom-"));

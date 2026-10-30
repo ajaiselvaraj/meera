@@ -19,7 +19,7 @@ This document provides an actionable, prioritized roadmap for remediating the se
 
 ### Phase 1: High-Priority External Decoupling (Immediate)
 
-#### Task 1.1: Decouple from Bloom Updater Endpoint & Upstream Keys
+#### Task 1.1: Decouple from Bloom Updater Endpoint & Upstream Keys [COMPLETED & VERIFIED]
 - **Finding Addressed:** FINDING-01
 - **Affected Files:**
   - `src-tauri/tauri.conf.json`
@@ -37,7 +37,7 @@ This document provides an actionable, prioritized roadmap for remediating the se
   3. Generate a dedicated MEERA Minisign key pair (`minisign -G`) when ready for MEERA release distribution.
 - **Regression Risk:** Low. Disables the update badge until MEERA's dedicated release pipeline is live.
 
-#### Task 1.2: Remove or Migrate Remote Announcement Endpoint
+#### Task 1.2: Remove or Migrate Remote Announcement Endpoint [COMPLETED & VERIFIED]
 - **Finding Addressed:** FINDING-02
 - **Affected Files:**
   - `src/hooks/useAnnouncement.ts`
@@ -48,7 +48,7 @@ This document provides an actionable, prioritized roadmap for remediating the se
   3. If announcement functionality is desired, replace with a dummy local fallback or an official MEERA domain endpoint.
 - **Regression Risk:** None. The announcement card is an optional informational banner.
 
-#### Task 1.3: Eliminate Plaintext HTTP Geolocation Fallback
+#### Task 1.3: Eliminate Plaintext HTTP Geolocation Fallback [COMPLETED & VERIFIED]
 - **Finding Addressed:** FINDING-03
 - **Affected Files:**
   - `src/hooks/useWeather.ts`
@@ -63,7 +63,7 @@ This document provides an actionable, prioritized roadmap for remediating the se
 
 ### Phase 2: Medium-Priority Architectural Hardening
 
-#### Task 2.1: Enforce Strict Path Validation on IPC Execution Commands
+#### Task 2.1: Enforce Strict Path Validation on IPC Execution Commands [COMPLETED & VERIFIED]
 - **Finding Addressed:** FINDING-04
 - **Affected Files:**
   - `src-tauri/src/commands.rs`
@@ -77,7 +77,7 @@ This document provides an actionable, prioritized roadmap for remediating the se
   2. Apply validation to `open_app`, `launch_new_instance`, `shelf_open`, and `open_dock_extra`.
 - **Regression Risk:** Low. Pinned apps and shelf files will open normally, while dangerous execution strings will be rejected.
 
-#### Task 2.2: Implement Inactive Idle Shutdown for WASAPI Loopback Capture
+#### Task 2.2: Implement Inactive Idle Shutdown for WASAPI Loopback Capture [COMPLETED & VERIFIED]
 - **Finding Addressed:** FINDING-05
 - **Affected Files:**
   - `src-tauri/src/services.rs`

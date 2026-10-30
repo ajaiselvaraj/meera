@@ -767,36 +767,16 @@ pub fn setup_audio_visualization(app_handle: AppHandle) {
                             }
                         }
 
-                        // Skip all heavy processing if nothing is playing
+                        // Release capture resources during idle periods
                         if !ANY_MEDIA_PLAYING.load(Ordering::Relaxed) {
-                            // Still gotta clear the buffer to avoid lag when it starts
-                            loop {
-                                let len = match capture_client.GetNextPacketSize() {
-                                    Ok(l) => l,
-                                    Err(_) => {
-                                        return Err("Device invalidated".into());
-                                    }
-                                };
-                                if len == 0 {
-                                    break;
-                                }
-                                let mut data_ptr: *mut u8 = std::ptr::null_mut();
-                                let mut num_frames = 0u32;
-                                let mut flags = 0u32;
-                                if capture_client
-                                    .GetBuffer(
-                                        &mut data_ptr,
-                                        &mut num_frames,
-                                        &mut flags,
-                                        None,
-                                        None,
-                                    )
-                                    .is_err()
-                                {
-                                    return Err("Device invalidated".into());
-                                }
-                                let _ = capture_client.ReleaseBuffer(num_frames);
+                            let _ = audio_client.Stop();
+                            while !ANY_MEDIA_PLAYING.load(Ordering::Relaxed) && !SHUTTING_DOWN.load(Ordering::Relaxed) {
+                                std::thread::sleep(std::time::Duration::from_millis(250));
                             }
+                            if SHUTTING_DOWN.load(Ordering::Relaxed) {
+                                return Ok(());
+                            }
+                            let _ = audio_client.Start();
                             continue;
                         }
 

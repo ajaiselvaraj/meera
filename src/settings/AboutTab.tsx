@@ -6,55 +6,25 @@ import { SettingRow } from "./SettingRow";
 
 interface AboutTabProps {
 	appVersion: string;
-	autoUpdate: boolean;
-	toggleAutoUpdate: () => void;
-	updateStatus: string;
-	updateVersion: string;
-	checkForUpdates: () => void;
-	installUpdate: () => void;
 	exportStatus: string;
 	importStatus: string;
 	handleExportSettings: () => void;
 	handleImportSettings: () => void;
+	autoUpdate?: boolean;
+	toggleAutoUpdate?: () => void;
+	updateStatus?: string;
+	updateVersion?: string;
+	checkForUpdates?: () => void;
+	installUpdate?: () => void;
 }
 
 export function AboutTab({
 	appVersion,
-	autoUpdate,
-	toggleAutoUpdate,
-	updateStatus,
-	updateVersion,
-	checkForUpdates,
-	installUpdate,
 	exportStatus,
 	importStatus,
 	handleExportSettings,
 	handleImportSettings
 }: AboutTabProps) {
-	const getUpdateLabel = () => {
-		switch (updateStatus) {
-			case "checking":
-				return "Checking...";
-			case "available":
-				return `Update Available (v${updateVersion})`;
-			case "uptodate":
-				return "MEERA is up to date";
-			case "downloading":
-				return "Downloading Update...";
-			case "installing":
-				return "Installing...";
-			case "error":
-				return "No updates found";
-			default:
-				return "Check for Updates";
-		}
-	};
-
-	const getUpdateDesc = () =>
-		updateStatus === "available"
-			? "Click to install and restart"
-			: `Currently running v${appVersion}`;
-
 	const getExportLabel = () => {
 		if (exportStatus === "exporting") return "Exporting...";
 		if (exportStatus === "success") return "Exported!";
@@ -78,11 +48,14 @@ export function AboutTab({
 			<div className="about-header">
 				<img src="/meera.png" className="about-logo" alt="MEERA Logo" draggable={false} />
 				<h1 className="about-title">MEERA</h1>
-				<p className="about-version">Desktop Companion • Version {appVersion}</p>
+				<p className="about-version">Desktop Companion · Version {appVersion}</p>
+				<p className="about-author-highlight">
+					Created by <strong>AJAI SELVARAJ</strong>
+				</p>
 				<p className="about-credit">
 					Engineered with Rust, Tauri v2 & React for Windows 11.
 					<br />
-					Built upon open-source foundations by{" "}
+					Original open-source foundation by{" "}
 					<button
 						className="about-author"
 						onClick={() => openUrl("https://github.com/SehajveerSingh2005/bloom")}
@@ -121,21 +94,23 @@ export function AboutTab({
 
 			<div className="setting-group-label">Software Updates</div>
 			<div className="setting-group">
-				<SettingRow icon={Download} label="Auto Update" desc="Check for updates on launch">
-					<label className="toggle-switch">
-						<input type="checkbox" checked={autoUpdate} onChange={toggleAutoUpdate} />
-						<span className="slider"></span>
-					</label>
+				<SettingRow
+					icon={Download}
+					label="Auto Update"
+					desc="Automatic updates are currently paused for MEERA"
+				>
+					<span style={{ fontSize: "12px", opacity: 0.6 }}>Disabled</span>
 				</SettingRow>
 
 				<SettingRow
 					icon={RefreshCw}
-					label={getUpdateLabel()}
-					desc={getUpdateDesc()}
-					action
+					label="Updates Inactive"
+					desc="Dedicated MEERA distribution channel in development"
+					action={false}
 					divider={false}
-					onClick={() => (updateStatus === "available" ? installUpdate() : checkForUpdates())}
-				/>
+				>
+					<span style={{ fontSize: "12px", opacity: 0.6 }}>v{appVersion} (Latest)</span>
+				</SettingRow>
 			</div>
 
 			<div className="setting-group-label setting-group-label--spaced">Backup & Restore</div>

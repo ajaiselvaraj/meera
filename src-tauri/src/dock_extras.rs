@@ -463,6 +463,10 @@ pub async fn open_dock_extra(kind: String, path: String) -> Result<(), String> {
         if kind == "recycle-bin" {
             shell_execute("explorer.exe", Some("shell:RecycleBinFolder"), "open")
         } else {
+            let p = std::path::Path::new(&path);
+            if !p.exists() {
+                return Err(format!("Invalid dock extra path: {}", path));
+            }
             shell_execute(&path, None, "open")
         }
     })

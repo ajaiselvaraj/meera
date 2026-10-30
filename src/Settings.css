@@ -107,6 +107,80 @@ body {
 	box-sizing: border-box;
 }
 
+.sidebar-traffic-lights {
+	display: flex;
+	align-items: center;
+	padding: 4px 8px 10px;
+	gap: 6px;
+}
+
+.traffic-light {
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.traffic-light.close {
+	background: #ff5f56;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15) inset;
+}
+
+.traffic-light.close:hover {
+	background: #ff3b30;
+	transform: scale(1.12);
+}
+
+.settings-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 18px 24px 14px;
+	border-bottom: 1px solid var(--bloom-border, rgba(255, 255, 255, 0.08));
+	user-select: none;
+}
+
+.header-close-btn {
+	-webkit-app-region: no-drag;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	color: var(--bloom-text-muted, rgba(255, 255, 255, 0.7));
+	cursor: pointer;
+	transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.header-close-btn:hover {
+	background: rgba(255, 69, 58, 0.2);
+	border-color: rgba(255, 69, 58, 0.4);
+	color: #ff453a;
+	transform: scale(1.06);
+}
+
+.header-close-btn:active {
+	transform: scale(0.94);
+}
+
+.light-mode .header-close-btn {
+	background: rgba(0, 0, 0, 0.06);
+	border-color: rgba(0, 0, 0, 0.1);
+	color: rgba(0, 0, 0, 0.65);
+}
+
+.light-mode .header-close-btn:hover {
+	background: rgba(255, 59, 48, 0.15);
+	border-color: rgba(255, 59, 48, 0.35);
+	color: #ff3b30;
+}
+
 .settings-sidebar-intro {
 	display: flex;
 	flex-direction: column;
@@ -1265,6 +1339,34 @@ input:checked + .slider:before {
 	font-weight: 600;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
+}
+
+.about-author-highlight {
+	margin: 12px 0 4px;
+	font-size: 13.5px;
+	font-weight: 500;
+	color: var(--bloom-text, #ffffff);
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	letter-spacing: 0.02em;
+}
+
+.about-author-highlight strong {
+	font-weight: 700;
+	background: linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+.light-mode .about-author-highlight {
+	color: #1c1c1e;
+}
+
+.light-mode .about-author-highlight strong {
+	background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
 }
 
 .about-credit {

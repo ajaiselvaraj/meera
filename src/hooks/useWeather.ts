@@ -131,46 +131,37 @@ async function resolveLocation(): Promise<ResolvedLocation> {
 		const savedCity = settings["bloom-weather-city"] || localStorage.getItem("bloom-weather-city");
 
 		if (savedLat && savedLon) {
+			const lat = Math.round(parseFloat(savedLat) * 100) / 100;
+			const lon = Math.round(parseFloat(savedLon) * 100) / 100;
 			return {
-				lat: parseFloat(savedLat),
-				lon: parseFloat(savedLon),
+				lat,
+				lon,
 				city: savedCity || undefined
 			};
 		}
 	} catch {
-		// continue to IP geolocation
+		// continue to secure IP geolocation
 	}
 
-	// 2. Try IP-based geolocation
+	// 2. Try secure IP-based geolocation over HTTPS
 	try {
 		const res = await fetch("https://ipapi.co/json/");
 		if (res.ok) {
 			const data = await res.json();
-			const lat = data.latitude || data.lat;
-			const lon = data.longitude || data.lon;
-			if (lat && lon) {
+			const rawLat = data.latitude || data.lat;
+			const rawLon = data.longitude || data.lon;
+			if (rawLat && rawLon) {
+				// Minimize location precision to ~1.1km city-level accuracy
+				const lat = Math.round(Number(rawLat) * 100) / 100;
+				const lon = Math.round(Number(rawLon) * 100) / 100;
 				return { lat, lon, city: data.city || undefined };
 			}
 		}
 	} catch {
-		// try fallback
+		// Secure geolocation unavailable
 	}
 
-	// 3. Fallback IP geolocation. ip-api.com's free tier is HTTP-only: the
-	// https:// endpoint answers 403 unless the request carries a paid key.
-	try {
-		const res = await fetch("http://ip-api.com/json/?fields=status,lat,lon,city,country");
-		if (res.ok) {
-			const data = await res.json();
-			if (data.lat && data.lon) {
-				return { lat: data.lat, lon: data.lon, city: data.city || undefined };
-			}
-		}
-	} catch {
-		// fall through to default
-	}
-
-	// 4. Default to Delhi
+	// 3. Insecure plaintext HTTP fallback removed. Default to Delhi.
 	return { lat: DELHI_LAT, lon: DELHI_LON, city: "Delhi" };
 }
 

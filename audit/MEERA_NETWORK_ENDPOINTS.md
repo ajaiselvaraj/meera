@@ -18,22 +18,22 @@ In `src-tauri/tauri.conf.json` (line 100), the active CSP is defined as:
 ```text
 default-src 'self';
 script-src 'self';
-style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+style-src 'self' 'unsafe-inline';
 img-src 'self' data: blob:;
-font-src 'self' data: https://fonts.gstatic.com;
+font-src 'self' data:;
 connect-src 'self' ipc: http://ipc.localhost
             https://api.open-meteo.com
             https://geocoding-api.open-meteo.com
             https://ipapi.co
-            http://ip-api.com
-            https://bloom.sehaz.space
 ```
+*(Updated in Phase 2: Removed bloom.sehaz.space, http://ip-api.com, fonts.googleapis.com, and fonts.gstatic.com)*
 
 ---
 
 ## 3. Detailed Network Operation Catalogue
 
-### Endpoint 1: Remote Announcement Service
+### Endpoint 1: Remote Announcement Service [ELIMINATED / REMOVED IN PHASE 2]
+**Remediation Note:** Polling to bloom.sehaz.space was completely removed from `src/hooks/useAnnouncement.ts`. CSP allowlist was revoked.
 1. **Source File & Function:** `src/hooks/useAnnouncement.ts` — `fetchAnnouncement()` (lines 47–64).
 2. **Triggering Event:** Component mount and recurring `setInterval` timer (every 60 minutes).
 3. **Destination:** `https://bloom.sehaz.space/announcements.json`.
@@ -75,7 +75,8 @@ connect-src 'self' ipc: http://ipc.localhost
 
 ---
 
-### Endpoint 3: Plaintext Fallback IP Geolocation Service
+### Endpoint 3: Plaintext Fallback IP Geolocation Service [ELIMINATED / REMOVED IN PHASE 2]
+**Remediation Note:** Insecure HTTP request to `http://ip-api.com` was completely eliminated from `src/hooks/useWeather.ts`. CSP allowlist was revoked.
 1. **Source File & Function:** `src/hooks/useWeather.ts` — `resolveLocation()` (lines 159–171).
 2. **Triggering Event:** Invoked when `https://ipapi.co/json/` fails, times out, or returns an error.
 3. **Destination:** `http://ip-api.com/json/?fields=status,lat,lon,city,country`.
@@ -158,7 +159,8 @@ connect-src 'self' ipc: http://ipc.localhost
 
 ---
 
-### Endpoint 7: Google Fonts CDN
+### Endpoint 7: Google Fonts CDN [ELIMINATED / REPLACED BY LOCAL BUNDLE IN PHASE 2]
+**Remediation Note:** Bundled `@fontsource/inter` locally. All font files are now packaged offline inside `dist/assets/`. CDN imports removed from CSS and CSP.
 1. **Source File & Function:** `src/App.css` (line 1), `src/Overlay.css` (line 1).
 2. **Triggering Event:** Webview initialization and CSS stylesheet parsing.
 3. **Destination:** `https://fonts.googleapis.com` and `https://fonts.gstatic.com`.

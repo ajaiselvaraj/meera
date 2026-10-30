@@ -53,12 +53,13 @@ flowchart TD
         L3 <-->|Mirror Sync| L4[WebView2 LocalStorage: bloom-* keys]
     end
 
-    subgraph External Network Destinations
-        N1[HTTP GET: ipapi.co / ip-api.com] <---|User IP Query| F5
-        N2[HTTP GET: api.open-meteo.com] <---|Latitude & Longitude| F5
-        N3[HTTP GET: bloom.sehaz.space] <---|Poll Announcement JSON| F1
-        N4[HTTP GET: github.com/SehajveerSingh2005/bloom] <---|Updater Manifest Query| R8[updater.rs]
-        N5[HTTP GET: fonts.googleapis.com] <---|Font Stylesheets| F8[CSS @import]
+    subgraph External Network Destinations (Post Phase 2 Remediation)
+        N1[HTTPS GET: ipapi.co] <---|Optional Geolocation (HTTPS only)| F5
+        N2[HTTPS GET: api.open-meteo.com] <---|Rounded Coordinates (~1.1km)| F5
+        %% N3 bloom.sehaz.space: REMOVED
+        %% N4 github.com Bloom updater: DISABLED / DISCONNECTED
+        %% N5 fonts.googleapis.com: REPLACED BY LOCAL BUNDLE
+        %% ip-api.com (HTTP): REMOVED
     end
 ```
 
@@ -69,7 +70,8 @@ flowchart TD
 ### 3.1 Audio Data
 - **Origin:** Windows Core Audio (WASAPI) — Default Render Console Endpoint (`eRender`, `eConsole`).
 - **Initiator:** `src-tauri/src/services.rs: setup_audio_visualization()` (lines 660–935).
-- **Trigger:** Background thread loop; actively processes audio packets when `ANY_MEDIA_PLAYING` atomic flag is set.
+- **Trigger:** Background thread loop; actively processes audio packets only when `ANY_MEDIA_PLAYING` atomic flag is set.
+- **Resource Lifecycle (Phase 2 Hardening):** When `ANY_MEDIA_PLAYING` is false, `audio_client.Stop()` is explicitly invoked and the thread enters a low-frequency 250ms sleep idle state, releasing capture resources until active media resumes.
 - **Data Captured:** 16-bit or 32-bit PCM audio stream of all sounds playing through the default Windows speaker output.
 - **Transformation Pipeline:**
   1. `IAudioCaptureClient::GetBuffer()` receives audio frames.
