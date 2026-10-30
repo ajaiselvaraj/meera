@@ -21,7 +21,7 @@ export function StartupTab({
 				<SettingRow
 					icon={Power}
 					label="Launch at Login"
-					desc="Start Bloom automatically when signing in to Windows"
+					desc="Start MEERA automatically when signing in to Windows"
 				>
 					<label className="toggle-switch">
 						<input type="checkbox" checked={autostart} onChange={toggleAutostart} />
@@ -32,7 +32,7 @@ export function StartupTab({
 				<SettingRow
 					icon={ShieldCheck}
 					label="Single-Instance Guard"
-					desc="Named Windows mutex ensures only one Bloom process runs at a time"
+					desc="Named Windows mutex ensures only one MEERA process runs at a time"
 				>
 					<span style={{ fontSize: "12px", opacity: 0.7, color: "var(--bloom-accent, #007aff)" }}>
 						Active
@@ -55,14 +55,14 @@ export function StartupTab({
 			<div className="setting-group">
 				<SettingRow
 					icon={RefreshCw}
-					label="Restart Bloom"
+					label="Restart MEERA"
 					desc="Re-registers AppBars, hooks, and reloads all webview windows"
 					action
 					onClick={restartBloom}
 				/>
 				<SettingRow
 					icon={RotateCcw}
-					label="Reset to Defaults"
+					label="Reset MEERA Settings"
 					desc="Restore all configurations to their original factory defaults"
 					action
 					danger

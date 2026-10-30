@@ -37,14 +37,14 @@ export function GeneralTab({
 			<div className="setting-group">
 				<SettingRow
 					icon={RefreshCw}
-					label="Restart Bloom"
+					label="Restart MEERA"
 					desc="Reinitialize all desktop components"
 					action
 					onClick={restartBloom}
 				/>
 				<SettingRow
 					icon={RotateCcw}
-					label="Reset to Defaults"
+					label="Reset MEERA Settings"
 					desc="Restore all settings and restart"
 					action
 					danger
@@ -52,7 +52,7 @@ export function GeneralTab({
 				/>
 				<SettingRow
 					icon={LogOut}
-					label="Quit Bloom"
+					label="Quit MEERA"
 					desc="Safely restore native Windows taskbar and exit"
 					action
 					danger

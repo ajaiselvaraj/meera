@@ -371,8 +371,8 @@ export function useSettings() {
 			.catch(() => {});
 
 		getVersion()
-			.then((ver) => setAppVersion(ver || "3.1.2"))
-			.catch(() => setAppVersion("3.1.2"));
+			.then((ver) => setAppVersion(ver || "3.10.1"))
+			.catch(() => setAppVersion("3.10.1"));
 
 		checkForUpdates(false);
 	}, []);
@@ -927,9 +927,9 @@ export function useSettings() {
 		try {
 			const { ask } = await import("@tauri-apps/plugin-dialog");
 			const confirmed = await ask(
-				"All settings return to their defaults and Bloom restarts. Pinned apps and custom icons are kept.",
+				"All settings return to their defaults and MEERA restarts. Pinned apps and custom icons are kept.",
 				{
-					title: "Reset Bloom to Defaults",
+					title: "Reset MEERA to Defaults",
 					kind: "warning",
 					okLabel: "Reset and Restart",
 					cancelLabel: "Cancel"

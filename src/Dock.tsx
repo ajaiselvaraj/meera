@@ -2000,7 +2000,7 @@ const Dock = memo(function Dock() {
 								onMouseEnter={() => setActiveSubmenu("bloom")}
 								onMouseLeave={() => setActiveSubmenu(null)}
 							>
-								Bloom Options
+								MEERA Options
 								<span className="submenu-arrow">▶</span>
 								<div className="submenu">
 									<div
@@ -2013,7 +2013,7 @@ const Dock = memo(function Dock() {
 										Open Settings
 									</div>
 									<div className="menu-item" onClick={() => invoke("restart_bloom")}>
-										Restart Bloom
+										Restart MEERA
 									</div>
 									<div
 										className="menu-item"
@@ -2026,7 +2026,7 @@ const Dock = memo(function Dock() {
 									</div>
 									<div className="menu-divider" />
 									<div className="menu-item quit" onClick={() => invoke("quit_bloom")}>
-										Quit Bloom
+										Quit MEERA
 									</div>
 								</div>
 							</div>
@@ -2099,7 +2099,7 @@ const Dock = memo(function Dock() {
 								onMouseEnter={() => setActiveSubmenu("bloom")}
 								onMouseLeave={() => setActiveSubmenu(null)}
 							>
-								Bloom Options
+								MEERA Options
 								<span className="submenu-arrow">▶</span>
 								<div className="submenu">
 									<div
@@ -2112,7 +2112,7 @@ const Dock = memo(function Dock() {
 										Open Settings
 									</div>
 									<div className="menu-item" onClick={() => invoke("restart_bloom")}>
-										Restart Bloom
+										Restart MEERA
 									</div>
 									<div
 										className="menu-item"
@@ -2125,7 +2125,7 @@ const Dock = memo(function Dock() {
 									</div>
 									<div className="menu-divider" />
 									<div className="menu-item quit" onClick={() => invoke("quit_bloom")}>
-										Quit Bloom
+										Quit MEERA
 									</div>
 								</div>
 							</div>
