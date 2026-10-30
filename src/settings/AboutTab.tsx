@@ -1,5 +1,6 @@
-import { Download, RefreshCw, FileDown, Upload } from "lucide-react";
+import { Download, RefreshCw, FileDown, Upload, Cpu, FolderOpen } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { invoke } from "@tauri-apps/api/core";
 import { GithubIcon } from "../icons";
 import { SettingRow } from "./SettingRow";
 
@@ -37,7 +38,7 @@ export function AboutTab({
 			case "available":
 				return `Update Available (v${updateVersion})`;
 			case "uptodate":
-				return "Bloom is up to date";
+				return "MEERA is up to date";
 			case "downloading":
 				return "Downloading Update...";
 			case "installing":
@@ -68,28 +69,59 @@ export function AboutTab({
 		return "Import Settings";
 	};
 
+	const openConfigDir = () => {
+		invoke("open_app", { appName: "explorer.exe %APPDATA%\\com.meera.desktop" }).catch(console.error);
+	};
+
 	return (
 		<div className="about-tab-container">
 			<div className="about-header">
-				<img src="/bloom.png" className="about-logo" alt="Bloom Logo" draggable={false} />
-				<h1 className="about-title">Bloom</h1>
-				<p className="about-version">Version {appVersion}</p>
+				<img src="/meera.png" className="about-logo" alt="MEERA Logo" draggable={false} />
+				<h1 className="about-title">MEERA</h1>
+				<p className="about-version">Desktop Companion • Version {appVersion}</p>
 				<p className="about-credit">
-					Made with <span className="about-heart">❤️</span> by{" "}
+					Engineered with Rust, Tauri v2 & React for Windows 11.
+					<br />
+					Built upon open-source foundations by{" "}
 					<button
 						className="about-author"
-						onClick={() => openUrl("https://github.com/SehajveerSingh2005")}
-						title="sehaz on GitHub"
+						onClick={() => openUrl("https://github.com/SehajveerSingh2005/bloom")}
+						title="Sehajveer Singh on GitHub"
 					>
 						<GithubIcon size={12} />
-						<span>sehaz</span>
-					</button>
+						<span>Sehajveer Singh</span>
+					</button>{" "}
+					(GPL-3.0)
 				</p>
+			</div>
+
+			<div className="setting-group-label">Architecture & Platform</div>
+			<div className="setting-group">
+				<SettingRow
+					icon={Cpu}
+					label="Platform & Target"
+					desc="Windows 11 x64 Native Binaries • Tauri v2.11 • React 19"
+				>
+					<span style={{ fontSize: "12px", opacity: 0.75 }}>x86_64-pc-windows-msvc</span>
+				</SettingRow>
+
+				<SettingRow
+					icon={FolderOpen}
+					label="Settings Configuration File"
+					desc="Stored in %APPDATA%\com.meera.desktop\settings.json"
+					action
+					divider={false}
+					onClick={openConfigDir}
+				>
+					<span style={{ fontSize: "12px", color: "var(--bloom-accent, #007aff)" }}>
+						Open Folder
+					</span>
+				</SettingRow>
 			</div>
 
 			<div className="setting-group-label">Software Updates</div>
 			<div className="setting-group">
-				<SettingRow icon={Download} label="Auto Update" desc="Update automatically on startup">
+				<SettingRow icon={Download} label="Auto Update" desc="Check for updates on launch">
 					<label className="toggle-switch">
 						<input type="checkbox" checked={autoUpdate} onChange={toggleAutoUpdate} />
 						<span className="slider"></span>
@@ -106,19 +138,19 @@ export function AboutTab({
 				/>
 			</div>
 
-			<div className="setting-group-label setting-group-label--spaced">Data</div>
+			<div className="setting-group-label setting-group-label--spaced">Backup & Restore</div>
 			<div className="setting-group">
 				<SettingRow
 					icon={FileDown}
 					label={getExportLabel()}
-					desc="Save settings to a file"
+					desc="Backup your personalized settings to a JSON file"
 					action
 					onClick={handleExportSettings}
 				/>
 				<SettingRow
 					icon={Upload}
 					label={getImportLabel()}
-					desc="Load settings from a file"
+					desc="Restore previously saved settings from a file"
 					action
 					divider={false}
 					onClick={handleImportSettings}

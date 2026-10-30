@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef, memo } from "react";
-import { motion, AnimatePresence, Reorder } from "framer-motion";
+import { motion, AnimatePresence, Reorder, useMotionValue, useTransform, useSpring, type MotionValue } from "framer-motion";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./Dock.css";
@@ -126,12 +126,17 @@ function TaskViewIcon() {
 }
 
 function resolveStartIcon(startIcon: string): string {
+	if (startIcon === "meera-neon") return "/meera-neon.png";
+	if (startIcon === "meera-gold") return "/meera-gold.png";
+	if (startIcon === "meera-dark") return "/meera-dark.png";
+	if (startIcon === "meera" || startIcon === "default") return "/meera.png";
 	if (startIcon === "bloom-colorful") return "/bloom-colorful.png";
 	if (startIcon === "bloom-golden") return "/bloom-golden.png";
 	if (startIcon === "bloom-biscuit") return "/bloom-biscuit.png";
+	if (startIcon === "bloom") return "/bloom.png";
 	if (startIcon === "windows") return "/windows-11.png";
 	if (startIcon.startsWith("custom:")) return startIcon.slice("custom:".length);
-	return "/bloom.png";
+	return "/meera.png";
 }
 
 // Stable module-level constants so object references never change between renders,
@@ -159,12 +164,96 @@ function WindowDots({ count, background }: { count: number; background?: boolean
 	);
 }
 
+interface MagnifiedDockIconProps {
+	mouseX: MotionValue<number>;
+	magnificationEnabled: boolean;
+	maxScale: number;
+	isPressed: boolean;
+	isHovered: boolean;
+	children: React.ReactNode;
+	className?: string;
+	onPointerDown?: (e: React.PointerEvent) => void;
+	onPointerUp?: (e: React.PointerEvent) => void;
+	onPointerCancel?: (e: React.PointerEvent) => void;
+	onClick?: (e: React.MouseEvent) => void;
+}
+
+const MagnifiedDockIcon = memo(function MagnifiedDockIcon({
+	mouseX,
+	magnificationEnabled,
+	maxScale,
+	isPressed,
+	isHovered,
+	children,
+	className = "dock-icon",
+	onPointerDown,
+	onPointerUp,
+	onPointerCancel,
+	onClick
+}: MagnifiedDockIconProps) {
+	const iconRef = useRef<HTMLDivElement>(null);
+	const distance = useTransform(mouseX, (x: number) => {
+		const bounds = iconRef.current?.getBoundingClientRect();
+		if (!bounds || !Number.isFinite(x)) return 1000;
+		return x - (bounds.left + bounds.width / 2);
+	});
+
+	const targetScale = useTransform(distance, [-130, 0, 130], [1, maxScale, 1], {
+		clamp: true
+	});
+	const targetY = useTransform(distance, [-130, 0, 130], [0, -(maxScale - 1) * 22, 0], {
+		clamp: true
+	});
+
+	const springScale = useSpring(targetScale, {
+		mass: 0.08,
+		stiffness: 320,
+		damping: 20
+	});
+	const springY = useSpring(targetY, {
+		mass: 0.08,
+		stiffness: 320,
+		damping: 20
+	});
+
+	const visualScale = isPressed ? 0.92 : (magnificationEnabled ? springScale : (isHovered ? 1.08 : 1));
+	const visualY = magnificationEnabled ? springY : (isHovered ? -4 : 0);
+
+	return (
+		<motion.div
+			ref={iconRef}
+			className={className}
+			style={{
+				scale: visualScale,
+				y: visualY,
+				transformOrigin: "bottom center"
+			}}
+			onPointerDown={onPointerDown}
+			onPointerUp={onPointerUp}
+			onPointerCancel={onPointerCancel}
+			onClick={onClick}
+		>
+			{children}
+		</motion.div>
+	);
+});
+
 const Dock = memo(function Dock() {
 	useEffect(() => {
 		return initTheme();
 	}, []);
 
 	const [pinnedApps, setPinnedApps] = useState<AppInfo[]>([]);
+	const mouseX = useMotionValue(Infinity);
+	const [dockMagnificationEnabled, setDockMagnificationEnabled] = useState(
+		() => localStorage.getItem("bloom-dock-magnification") !== "false"
+	);
+	const [dockMagnificationScale, setDockMagnificationScale] = useState(() =>
+		parseFloat(localStorage.getItem("bloom-dock-magnification-scale") || "1.35")
+	);
+	const [dockIconSize, setDockIconSize] = useState(
+		() => localStorage.getItem("bloom-dock-icon-size") || "medium"
+	);
 	const [activeApps, setActiveApps] = useState<AppInfo[]>([]);
 	const iconsRef = useRef<Record<string, string>>({});
 	const pendingIconsRef = useRef(new Set<string>());
@@ -478,6 +567,9 @@ const Dock = memo(function Dock() {
 		"bloom-dock-separator-enabled": setDockSeparatorEnabled,
 		"bloom-dock-adaptive": setDockAdaptive,
 		"bloom-dock-task-view": setDockTaskView,
+		"bloom-dock-magnification": setDockMagnificationEnabled,
+		"bloom-dock-magnification-scale": setDockMagnificationScale,
+		"bloom-dock-icon-size": setDockIconSize,
 		"bloom-start-icon": setStartIcon,
 		"bloom-scale": setScale,
 		"bloom-dock-extras-position": setDockExtrasPosition,
@@ -1194,12 +1286,6 @@ const Dock = memo(function Dock() {
 		};
 	}, [hoveredApp, isDragging, dockItems]);
 
-	const iconVariants = {
-		idle: { y: 0, scale: 1 },
-		hover: { y: -5, scale: 1.1 },
-		drag: { y: -10, scale: 1.1, opacity: 0.8 },
-		tap: { scale: 0.95 }
-	};
 
 	const renderExtra = (extra: DockExtra) => (
 		<motion.div
@@ -1224,10 +1310,12 @@ const Dock = memo(function Dock() {
 			}}
 		>
 			{hoveredApp === extra.id && <div className="tooltip">{extra.name}</div>}
-			<motion.div
-				className="dock-icon"
-				variants={iconVariants}
-				animate={pressedApp === extra.id ? "tap" : hoveredApp === extra.id ? "hover" : "idle"}
+			<MagnifiedDockIcon
+				mouseX={mouseX}
+				magnificationEnabled={dockMagnificationEnabled}
+				maxScale={dockMagnificationScale}
+				isPressed={pressedApp === extra.id}
+				isHovered={hoveredApp === extra.id}
 				onPointerDown={() => setPressedApp(extra.id)}
 				onPointerUp={() => setPressedApp(null)}
 				onPointerCancel={() => setPressedApp(null)}
@@ -1237,12 +1325,12 @@ const Dock = memo(function Dock() {
 				) : (
 					<div className="fallback-icon">{extra.name[0]}</div>
 				)}
-			</motion.div>
+			</MagnifiedDockIcon>
 		</motion.div>
 	);
 
 	return (
-		<div className={`dock-container ${isDragging ? "dragging" : ""}`} onClick={closeMenu}>
+		<div className={`dock-container ${isDragging ? "dragging" : ""} dock-icon-size-${dockIconSize}`} onClick={closeMenu}>
 			<div
 				style={{
 					width: "100%",
@@ -1309,6 +1397,14 @@ const Dock = memo(function Dock() {
 								exit={{ opacity: 0 }}
 								transition={{ duration: 0.15 }}
 								className="dock-reorder-container"
+								onMouseMove={(e) => {
+									if (!isDragging) {
+										mouseX.set(e.clientX);
+									}
+								}}
+								onMouseLeave={() => {
+									mouseX.set(Infinity);
+								}}
 							>
 								{startItem && (
 									<motion.div
@@ -1330,16 +1426,12 @@ const Dock = memo(function Dock() {
 											(dockPreviewEnabled && hoveredApp === itemKey(startItem))) && (
 											<div className="tooltip">{startItem.name}</div>
 										)}
-										<motion.div
-											className="dock-icon"
-											variants={iconVariants}
-											animate={
-												pressedApp === itemKey(startItem)
-													? "tap"
-													: hoveredApp === itemKey(startItem)
-														? "hover"
-														: "idle"
-											}
+										<MagnifiedDockIcon
+											mouseX={mouseX}
+											magnificationEnabled={dockMagnificationEnabled}
+											maxScale={dockMagnificationScale}
+											isPressed={pressedApp === itemKey(startItem)}
+											isHovered={hoveredApp === itemKey(startItem)}
 											onPointerDown={() => setPressedApp(itemKey(startItem))}
 											onPointerUp={() => setPressedApp(null)}
 											onPointerCancel={() => setPressedApp(null)}
@@ -1357,7 +1449,7 @@ const Dock = memo(function Dock() {
 												}
 												draggable={false}
 											/>
-										</motion.div>
+										</MagnifiedDockIcon>
 									</motion.div>
 								)}
 
@@ -1382,16 +1474,12 @@ const Dock = memo(function Dock() {
 										{(!dockPreviewEnabled || hoveredApp === "task-view") && (
 											<div className="tooltip">Task View</div>
 										)}
-										<motion.div
-											className="dock-icon"
-											variants={iconVariants}
-											animate={
-												pressedApp === "task-view"
-													? "tap"
-													: hoveredApp === "task-view"
-														? "hover"
-														: "idle"
-											}
+										<MagnifiedDockIcon
+											mouseX={mouseX}
+											magnificationEnabled={dockMagnificationEnabled}
+											maxScale={dockMagnificationScale}
+											isPressed={pressedApp === "task-view"}
+											isHovered={hoveredApp === "task-view"}
 											onPointerDown={() => setPressedApp("task-view")}
 											onPointerUp={() => setPressedApp(null)}
 											onPointerCancel={() => setPressedApp(null)}
@@ -1401,7 +1489,7 @@ const Dock = memo(function Dock() {
 											}}
 										>
 											<TaskViewIcon />
-										</motion.div>
+										</MagnifiedDockIcon>
 									</motion.div>
 								)}
 
@@ -1518,19 +1606,12 @@ const Dock = memo(function Dock() {
 													(dockPreviewEnabled && hoveredApp === itemKey(app) && !previewData)) && (
 													<div className="tooltip">{app.name}</div>
 												)}
-												<motion.div
-													className="dock-icon"
-													variants={iconVariants}
-													animate={
-														pressedApp === itemKey(app)
-															? "tap"
-															: isDragging && !app.is_pinned
-																? "idle"
-																: hoveredApp === itemKey(app) && !isDragging
-																	? "hover"
-																	: "idle"
-													}
-													whileDrag="drag"
+												<MagnifiedDockIcon
+													mouseX={mouseX}
+													magnificationEnabled={dockMagnificationEnabled}
+													maxScale={dockMagnificationScale}
+													isPressed={pressedApp === itemKey(app)}
+													isHovered={hoveredApp === itemKey(app) && !isDragging}
 													onPointerDown={() => setPressedApp(itemKey(app))}
 													onPointerUp={() => setPressedApp(null)}
 													onPointerCancel={() => setPressedApp(null)}
@@ -1556,7 +1637,9 @@ const Dock = memo(function Dock() {
 
 														const isBloomOrSettings =
 															app.name.toLowerCase() === "settings" ||
+															app.name.toLowerCase() === "meera" ||
 															app.name.toLowerCase() === "bloom" ||
+															app.path.toLowerCase().includes("meera.exe") ||
 															app.path.toLowerCase().includes("bloom.exe");
 
 														return icon ? (
@@ -1570,7 +1653,7 @@ const Dock = memo(function Dock() {
 															<div className="fallback-icon">{app.name[0]}</div>
 														);
 													})()}
-												</motion.div>
+												</MagnifiedDockIcon>
 												{app.is_running && (
 													<WindowDots
 														count={app.all_hwnds?.length ?? 1}
@@ -1681,16 +1764,12 @@ const Dock = memo(function Dock() {
 											(dockPreviewEnabled && hoveredApp === itemKey(app) && !previewData)) && (
 											<div className="tooltip">{app.name}</div>
 										)}
-										<motion.div
-											className="dock-icon"
-											variants={iconVariants}
-											animate={
-												pressedApp === itemKey(app)
-													? "tap"
-													: hoveredApp === itemKey(app) && !isDragging
-														? "hover"
-														: "idle"
-											}
+										<MagnifiedDockIcon
+											mouseX={mouseX}
+											magnificationEnabled={dockMagnificationEnabled}
+											maxScale={dockMagnificationScale}
+											isPressed={pressedApp === itemKey(app)}
+											isHovered={hoveredApp === itemKey(app) && !isDragging}
 											onPointerDown={() => setPressedApp(itemKey(app))}
 											onPointerUp={() => setPressedApp(null)}
 											onPointerCancel={() => setPressedApp(null)}
@@ -1715,7 +1794,9 @@ const Dock = memo(function Dock() {
 													app.icon;
 												const isBloomOrSettings =
 													app.name.toLowerCase() === "settings" ||
+													app.name.toLowerCase() === "meera" ||
 													app.name.toLowerCase() === "bloom" ||
+													app.path.toLowerCase().includes("meera.exe") ||
 													app.path.toLowerCase().includes("bloom.exe");
 												return icon ? (
 													<img
@@ -1728,7 +1809,7 @@ const Dock = memo(function Dock() {
 													<div className="fallback-icon">{app.name[0]}</div>
 												);
 											})()}
-										</motion.div>
+										</MagnifiedDockIcon>
 										{app.is_running && (
 											<WindowDots
 												count={app.all_hwnds?.length ?? 1}

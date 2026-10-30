@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "bloom",
+  "productName": "MEERA",
   "version": "3.10.1",
-  "identifier": "com.sehaz.bloom",
+  "identifier": "com.meera.desktop",
   "build": {
     "beforeDevCommand": "bun run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "bloom",
+        "title": "MEERA",
         "width": 1920,
         "height": 420,
         "x": 0,
@@ -35,7 +35,7 @@
       {
         "label": "settings",
         "create": false,
-        "title": "Settings",
+        "title": "MEERA Settings",
         "url": "settings.html",
         "width": 740,
         "height": 560,
@@ -76,7 +76,7 @@
       },
       {
         "label": "dock",
-        "title": "Bloom Dock",
+        "title": "MEERA Dock",
         "url": "dock.html",
         "width": 1920,
         "height": 600,
@@ -104,11 +104,11 @@
     "active": true,
     "createUpdaterArtifacts": true,
     "targets": "all",
-    "publisher": "Sehajveer Singh",
-    "copyright": "Copyright © 2026 Sehajveer Singh",
+    "publisher": "MEERA",
+    "copyright": "Copyright © 2026 MEERA",
     "category": "Utility",
-    "shortDescription": "A notch and dock for Windows",
-    "longDescription": "Bloom replaces the Windows taskbar with a dock and adds a notch for media, quick controls and status.",
+    "shortDescription": "MEERA — Premium Desktop Companion for Windows 11",
+    "longDescription": "MEERA transforms your Windows 11 desktop with MEERA Island, an Apple-inspired fluid Dock with parabolic hover magnification, and unified Control Center.",
     "windows": {
       "webviewInstallMode": {
         "type": "embedBootstrapper"
@@ -118,7 +118,6 @@
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
-      "icons/icon.icns",
       "icons/icon.ico"
     ]
   },

@@ -4,14 +4,29 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Effect } from "@tauri-apps/api/window";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { X, Settings, Palette, PanelTop, Monitor, Layers, Info, Megaphone } from "lucide-react";
+import {
+	X,
+	Settings,
+	Palette,
+	PanelTop,
+	Monitor,
+	Sliders,
+	Keyboard,
+	Power,
+	Bell,
+	Info,
+	Megaphone
+} from "lucide-react";
 import {
 	useSettings,
 	GeneralTab,
 	AppearanceTab,
 	NotchTab,
 	DockTab,
-	OverlaysTab,
+	SystemTab,
+	ShortcutsTab,
+	StartupTab,
+	NotificationsTab,
 	AboutTab
 } from "./settings/index";
 import type { SettingsTab } from "./settings/index";
@@ -25,9 +40,12 @@ const appWindow = getCurrentWebviewWindow();
 const TABS: { id: SettingsTab; label: string; icon: typeof Settings }[] = [
 	{ id: "general", label: "General", icon: Settings },
 	{ id: "appearance", label: "Appearance", icon: Palette },
-	{ id: "notch", label: "Notch", icon: PanelTop },
+	{ id: "notch", label: "Dynamic Island", icon: PanelTop },
 	{ id: "dock", label: "Dock", icon: Monitor },
-	{ id: "overlays", label: "Overlays", icon: Layers },
+	{ id: "system", label: "System", icon: Sliders },
+	{ id: "shortcuts", label: "Shortcuts", icon: Keyboard },
+	{ id: "startup", label: "Startup", icon: Power },
+	{ id: "notifications", label: "Notifications", icon: Bell },
 	{ id: "about", label: "About", icon: Info }
 ];
 
@@ -36,13 +54,17 @@ const TAB_COPY: Record<SettingsTab, string> = {
 	appearance: "Make every surface feel at home on your desktop.",
 	notch: "Choose what appears at the top of your screen.",
 	dock: "Shape the taskbar replacement around your workflow.",
-	overlays: "Keep quick controls visible only when you need them.",
-	about: "Version, updates and your settings data."
+	system: "Native audio, display, and quick system access.",
+	shortcuts: "Keyboard hotkeys and screen edge triggers.",
+	startup: "Windows login launch and watchdog protection.",
+	notifications: "Battery warnings, update alerts, and toasts.",
+	overlays: "Native audio and display controls.",
+	about: "Platform architecture, updates, and your settings data."
 };
 
 function SettingsApp() {
 	const [activeTab, setActiveTab] = useState<SettingsTab>("general");
-	const [previewFocus, setPreviewFocus] = useState("");
+	const [previewFocus] = useState("");
 	const contentRef = useRef<HTMLDivElement>(null);
 	const settings = useSettings();
 	useEffect(() => {
@@ -98,122 +120,124 @@ function SettingsApp() {
 	}, []);
 
 	useEffect(() => {
-		invoke("resize_settings_window", {
-			width: 740 * settings.scale,
-			height: 560 * settings.scale
-		}).catch(console.error);
-	}, [settings.scale]);
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Escape") {
+				closeSettings();
+			}
+		};
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [closeSettings]);
 
-	useEffect(() => {
-		if (contentRef.current) contentRef.current.scrollTop = 0;
-	}, [activeTab]);
-
-	const handleClose = async (e: React.MouseEvent) => {
-		e.preventDefault();
-		e.stopPropagation();
-		await closeSettings();
-	};
+	const currentTabLabel = TABS.find((t) => t.id === activeTab)?.label ?? "Settings";
 
 	return (
-		<div className="settings-container" style={{ zoom: settings.scale }} inert={isClosing}>
-			<div className="title-bar" data-tauri-drag-region>
-				<span className="title-text" data-tauri-drag-region>
-					Settings
-				</span>
-				<button className="close-btn" onClick={handleClose} title="Close Settings">
-					<X size={12} strokeWidth={1.5} className="close-btn-icon" />
-				</button>
-			</div>
-
-			<div className="settings-body">
-				<div className="settings-sidebar">
-					<div className="settings-sidebar-intro"><strong>Bloom</strong><span>Make it yours</span></div>
-					{TABS.map(({ id, label, icon: Icon }) => (
-						<button
-							key={id}
-							className={`sidebar-tab ${activeTab === id ? "active" : ""}`}
-							onClick={() => setActiveTab(id)}
-						>
-							<div className="sidebar-tab-icon">
-								<Icon size={14} strokeWidth={1.5} />
-							</div>
-							<span>{label}</span>
-						</button>
-					))}
+		<div className="settings-window">
+			<div className="settings-sidebar" data-tauri-drag-region>
+				<div className="sidebar-traffic-lights">
+					<button
+						className="traffic-light close"
+						onClick={closeSettings}
+						aria-label="Close"
+						disabled={isClosing}
+					/>
 				</div>
 
-				<div className="settings-content" ref={contentRef} onChangeCapture={(event) => {
-					const target = event.target as HTMLElement;
-					const row = target.closest(".setting-item");
-					let label = row?.querySelector(".setting-label")?.textContent;
-					if (!label && target.closest(".settings-disclosure-standalone")) label = "Status Widgets";
-					if (activeTab === "overlays" && label === "Show on Edge Hover") {
-						const edgeRows = Array.from(contentRef.current?.querySelectorAll(".setting-item") ?? []).filter(
-							(item) => item.querySelector(".setting-label")?.textContent === label
+				<div className="sidebar-tabs">
+					{TABS.map((tab) => {
+						const Icon = tab.icon;
+						const isActive = activeTab === tab.id;
+						return (
+							<button
+								key={tab.id}
+								className={`sidebar-tab ${isActive ? "active" : ""}`}
+								onClick={() => {
+									setActiveTab(tab.id);
+									contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+								}}
+							>
+								<Icon size={16} strokeWidth={2} />
+								<span>{tab.label}</span>
+							</button>
 						);
-						label = row === edgeRows[edgeRows.length - 1] && edgeRows.length > 1 ? "Brightness Edge Hover" : "Volume Edge Hover";
-					}
-					if (label) setPreviewFocus(activeTab + ":" + label + ":" + Date.now());
-				}} onClickCapture={(event) => {
-					const label = (event.target as HTMLElement).closest(".setting-item")?.querySelector(".setting-label")?.textContent;
-					if (label === "Start Menu Icon" || label === "Weather Status") {
-						setPreviewFocus(activeTab + ":" + label + ":" + Date.now());
-					}
-				}}>
+					})}
+				</div>
+			</div>
+
+			<div className="settings-main">
+				<div className="settings-header" data-tauri-drag-region>
+					<div className="settings-title-group" data-tauri-drag-region>
+						<h1 className="settings-title" data-tauri-drag-region>
+							{currentTabLabel}
+						</h1>
+						<p className="settings-subtitle" data-tauri-drag-region>
+							{TAB_COPY[activeTab]}
+						</p>
+					</div>
+					<button
+						className="header-close-btn"
+						onClick={closeSettings}
+						aria-label="Close"
+						disabled={isClosing}
+					>
+						<X size={16} />
+					</button>
+				</div>
+
+				<div className="settings-content" ref={contentRef}>
+					{announcement && !dismissed && (
+						<div
+							className="settings-announcement-card"
+							onClick={() => announcement.url && openUrl(announcement.url)}
+							style={{ cursor: announcement.url ? "pointer" : "default" }}
+						>
+							<div className="announcement-icon-badge">
+								<Megaphone size={16} />
+							</div>
+							<div className="announcement-text">
+								<div className="announcement-title">{announcement.title}</div>
+								<div className="announcement-message">{announcement.body}</div>
+							</div>
+							<button
+								className="announcement-close-btn"
+								onClick={(e) => {
+									e.stopPropagation();
+									dismiss();
+								}}
+								aria-label="Dismiss announcement"
+							>
+								<X size={14} />
+							</button>
+						</div>
+					)}
 					{settings.saveError && (
 						<div className="settings-save-error" role="alert">
-							<span>
-								Changes could not be saved. Your saved settings have been restored.
-								{settings.saveErrorDetail && (
-									<small style={{ display: "block" }}>{settings.saveErrorDetail}</small>
-								)}
-							</span>
-							<button onClick={settings.dismissSaveError} aria-label="Dismiss save error">
-								<X size={14} strokeWidth={2} />
-							</button>
-						</div>
-					)}
-					{announcement && !dismissed && (
-						<div className={`announcement-banner severity-${announcement.severity}`}>
-							<Megaphone size={14} className="announcement-banner-icon" />
-							<div className="announcement-banner-text">
-								<span className="announcement-banner-title">{announcement.title}</span>
-								{announcement.body && (
-									<span className="announcement-banner-body">{announcement.body}</span>
-								)}
-							</div>
-							{announcement.url && (
-								<button
-									className="announcement-banner-link"
-									onClick={() => openUrl(announcement.url!)}
-								>
-									Learn more
-								</button>
+							<span>Settings could not be saved to disk.</span>
+							{settings.saveErrorDetail && (
+								<span className="settings-save-error-detail">
+									{settings.saveErrorDetail}
+								</span>
 							)}
-							<button className="announcement-banner-close" onClick={dismiss} title="Dismiss">
-								<X size={12} strokeWidth={2.2} />
+							<button
+								type="button"
+								className="settings-save-error-dismiss"
+								onClick={settings.dismissSaveError}
+							>
+								Dismiss
 							</button>
 						</div>
 					)}
-					<div className="settings-page-heading">
-						<h1>{TABS.find((tab) => tab.id === activeTab)?.label}</h1>
-						<p>{TAB_COPY[activeTab]}</p>
-					</div>
-					<FeaturePreview
-						tab={activeTab}
-						settings={settings}
-						focus={previewFocus}
-					/>
+					{(activeTab === "appearance" || activeTab === "dock" || activeTab === "notch") && (
+						<FeaturePreview
+							tab={activeTab}
+							settings={settings}
+							focus={previewFocus}
+						/>
+					)}
 					{activeTab === "general" && (
 						<GeneralTab
-							autostart={settings.autostart}
-							toggleAutostart={settings.toggleAutostart}
 							timeFormat24h={settings.timeFormat24h}
 							toggleTimeFormat24h={settings.toggleTimeFormat24h}
-							showUpdateIndicator={settings.showUpdateIndicator}
-							toggleUpdateIndicator={settings.toggleUpdateIndicator}
-							lowBatteryThreshold={settings.lowBatteryThreshold}
-							handleThresholdChange={settings.handleThresholdChange}
 							restartBloom={settings.restartBloom}
 							resetToDefaults={settings.resetToDefaults}
 							quitBloom={settings.quitBloom}
@@ -231,10 +255,10 @@ function SettingsApp() {
 							handleSaturationChange={settings.handleSaturationChange}
 							themeBrightness={settings.themeBrightness}
 							handleBrightnessChange={settings.handleBrightnessChange}
-							cornersEnabled={settings.cornersEnabled}
-							toggleCorners={settings.toggleCorners}
 							scale={settings.scale}
 							handleScaleChange={settings.handleScaleChange}
+							cornersEnabled={settings.cornersEnabled}
+							toggleCorners={settings.toggleCorners}
 						/>
 					)}
 					{activeTab === "notch" && (
@@ -318,10 +342,16 @@ function SettingsApp() {
 							handleRemoveDockExtraFolder={settings.handleRemoveDockExtraFolder}
 							startIcon={settings.startIcon}
 							handleStartIconChange={settings.handleStartIconChange}
+							dockMagnificationEnabled={settings.dockMagnificationEnabled}
+							toggleDockMagnification={settings.toggleDockMagnification}
+							dockMagnificationScale={settings.dockMagnificationScale}
+							handleDockMagnificationScaleChange={settings.handleDockMagnificationScaleChange}
+							dockIconSize={settings.dockIconSize}
+							handleDockIconSizeChange={settings.handleDockIconSizeChange}
 						/>
 					)}
-					{activeTab === "overlays" && (
-						<OverlaysTab
+					{activeTab === "system" && (
+						<SystemTab
 							volumeOverlayEnabled={settings.volumeOverlayEnabled}
 							toggleVolumeOverlay={settings.toggleVolumeOverlay}
 							volumeEdgeEnabled={settings.volumeEdgeEnabled}
@@ -330,6 +360,28 @@ function SettingsApp() {
 							toggleBrightnessOverlay={settings.toggleBrightnessOverlay}
 							brightnessEdgeEnabled={settings.brightnessEdgeEnabled}
 							toggleBrightnessEdge={settings.toggleBrightnessEdge}
+						/>
+					)}
+					{activeTab === "shortcuts" && (
+						<ShortcutsTab
+							dockWinNumberEnabled={settings.dockWinNumberEnabled}
+							toggleDockWinNumber={settings.toggleDockWinNumber}
+						/>
+					)}
+					{activeTab === "startup" && (
+						<StartupTab
+							autostart={settings.autostart}
+							toggleAutostart={settings.toggleAutostart}
+							restartBloom={settings.restartBloom}
+							resetToDefaults={settings.resetToDefaults}
+						/>
+					)}
+					{activeTab === "notifications" && (
+						<NotificationsTab
+							lowBatteryThreshold={settings.lowBatteryThreshold}
+							handleThresholdChange={settings.handleThresholdChange}
+							showUpdateIndicator={settings.showUpdateIndicator}
+							toggleUpdateIndicator={settings.toggleUpdateIndicator}
 						/>
 					)}
 					{activeTab === "about" && (

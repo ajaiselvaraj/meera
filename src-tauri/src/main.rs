@@ -61,11 +61,11 @@ fn main() {
             CreateEventW, CreateMutexW, OpenEventW, SetEvent, SYNCHRONIZATION_ACCESS_RIGHTS,
         };
 
-        let mutex_name: Vec<u16> = "BloomSingleInstance"
+        let mutex_name: Vec<u16> = "MeeraSingleInstance"
             .encode_utf16()
             .chain(std::iter::once(0))
             .collect();
-        let event_name: Vec<u16> = "BloomOpenSettings"
+        let event_name: Vec<u16> = "MeeraOpenSettings"
             .encode_utf16()
             .chain(std::iter::once(0))
             .collect();
@@ -406,16 +406,16 @@ fn main() {
             {
                 use tauri::menu::{Menu, MenuItem};
                 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-                let quit_item = MenuItem::with_id(app, "quit", "Quit Bloom", true, None::<&str>)?;
+                let quit_item = MenuItem::with_id(app, "quit", "Quit MEERA", true, None::<&str>)?;
                 let restart_item =
-                    MenuItem::with_id(app, "restart", "Restart Bloom", true, None::<&str>)?;
+                    MenuItem::with_id(app, "restart", "Restart MEERA", true, None::<&str>)?;
                 let settings_item =
-                    MenuItem::with_id(app, "settings", "Open Settings", true, None::<&str>)?;
+                    MenuItem::with_id(app, "settings", "MEERA Settings", true, None::<&str>)?;
                 let menu = Menu::with_items(app, &[&settings_item, &restart_item, &quit_item])?;
                 let ah = app.handle().clone();
                 TrayIconBuilder::new()
                     .icon(app.default_window_icon().unwrap().clone())
-                    .tooltip("Bloom")
+                    .tooltip("MEERA")
                     .menu(&menu)
                     .on_menu_event(move |_, event| match event.id().as_ref() {
                         "quit" => {

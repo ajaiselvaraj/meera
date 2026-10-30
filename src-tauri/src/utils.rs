@@ -1233,6 +1233,19 @@ pub fn init_settings_cache(app: &tauri::AppHandle) {
         .ok()
         .map(|p| p.join("settings.json"))
     {
+        // Smooth migration from previous Bloom settings if MEERA settings don't exist yet
+        if !path.exists() {
+            if let Ok(appdata) = std::env::var("APPDATA") {
+                let bloom_settings = std::path::PathBuf::from(appdata).join("bloom").join("settings.json");
+                if bloom_settings.exists() {
+                    if let Some(parent) = path.parent() {
+                        let _ = std::fs::create_dir_all(parent);
+                    }
+                    let _ = std::fs::copy(&bloom_settings, &path);
+                }
+            }
+        }
+
         if let Ok(settings) = read_settings_file(&path) {
             if let Ok(mut cache) = cache.lock() {
                 *cache = settings;

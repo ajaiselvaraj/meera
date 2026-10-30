@@ -676,10 +676,14 @@ pub async fn open_app(app: AppHandle, app_name: String) {
 
 fn is_bloom_launch_target(target: &str, identifier: &str) -> bool {
     target == "bloom-settings"
+        || target == "meera-settings"
         || target.eq_ignore_ascii_case(identifier)
         || std::path::Path::new(target)
             .file_name()
-            .is_some_and(|name| name.to_string_lossy().eq_ignore_ascii_case("bloom.exe"))
+            .is_some_and(|name| {
+                let s = name.to_string_lossy();
+                s.eq_ignore_ascii_case("bloom.exe") || s.eq_ignore_ascii_case("meera.exe")
+            })
 }
 
 /// Launches another instance of an app instead of focusing an existing window.
@@ -3836,7 +3840,7 @@ fn apply_imported_settings(app: &AppHandle, settings: &str) -> Result<(), String
         );
     }
 
-    if imported.get("bloom-scale").is_some() {
+    if imported.contains_key("bloom-scale") {
         re_register_appbars(app, &imported);
     }
 
@@ -4147,8 +4151,13 @@ mod pwa_icon_tests {
         let identifier = "com.sehaz.bloom";
         assert!(is_bloom_launch_target(identifier, identifier));
         assert!(is_bloom_launch_target("bloom-settings", identifier));
+        assert!(is_bloom_launch_target("meera-settings", identifier));
         assert!(is_bloom_launch_target(
             "C:\\Users\\test\\AppData\\Local\\bloom\\bloom.exe",
+            identifier
+        ));
+        assert!(is_bloom_launch_target(
+            "C:\\Users\\test\\AppData\\Local\\meera\\meera.exe",
             identifier
         ));
         assert!(!is_bloom_launch_target("C:\\Apps\\Discord.exe", identifier));

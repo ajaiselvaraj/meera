@@ -132,6 +132,15 @@ export function useSettings() {
 	const [dockExtrasFolders, setDockExtrasFolders] = useState(
 		() => localStorage.getItem("bloom-dock-extras-folders") ?? DEFAULT_ENABLED_FOLDERS
 	);
+	const [dockMagnificationEnabled, setDockMagnificationEnabled] = useState(
+		() => localStorage.getItem("bloom-dock-magnification") !== "false"
+	);
+	const [dockMagnificationScale, setDockMagnificationScale] = useState(
+		() => parseFloat(localStorage.getItem("bloom-dock-magnification-scale") || "1.35")
+	);
+	const [dockIconSize, setDockIconSize] = useState(
+		() => localStorage.getItem("bloom-dock-icon-size") || "medium"
+	);
 	const [dockExtrasCustomFolders, setDockExtrasCustomFolders] = useState(
 		() => localStorage.getItem("bloom-dock-extras-custom-folders") || "[]"
 	);
@@ -241,6 +250,9 @@ export function useSettings() {
 			apply(getVal("bloom-dock-extras-hidden-drives"), setDockExtrasHiddenDrives, (v) => v);
 			apply(getVal("bloom-dock-extras-folders"), setDockExtrasFolders, (v) => v);
 			apply(getVal("bloom-dock-extras-custom-folders"), setDockExtrasCustomFolders, (v) => v);
+			apply(getVal("bloom-dock-magnification"), setDockMagnificationEnabled, readBool);
+			apply(getVal("bloom-dock-magnification-scale"), setDockMagnificationScale, (v) => parseFloat(v) || 1.35);
+			apply(getVal("bloom-dock-icon-size"), setDockIconSize, (v) => v);
 
 			apply(getVal("bloom-temp-unit"), setTempUnitFahrenheit, (v) => v === "fahrenheit");
 			apply(getVal("bloom-scale"), setScale, parseFloat);
@@ -385,6 +397,9 @@ export function useSettings() {
 		"bloom-dock-extras-hidden-drives": setDockExtrasHiddenDrives,
 		"bloom-dock-extras-folders": setDockExtrasFolders,
 		"bloom-dock-extras-custom-folders": setDockExtrasCustomFolders,
+		"bloom-dock-magnification": setDockMagnificationEnabled,
+		"bloom-dock-magnification-scale": setDockMagnificationScale,
+		"bloom-dock-icon-size": setDockIconSize,
 		"bloom-weather-enabled": setWeatherEnabled,
 		"bloom-calendar-enabled": setCalendarEnabled,
 		"bloom-notch-command-center-enabled": setControlsPanelEnabled,
@@ -680,6 +695,22 @@ export function useSettings() {
 		const next = !dockPreviewEnabled;
 		setDockPreviewEnabled(next);
 		saveSetting("bloom-dock-preview-enabled", String(next));
+	};
+
+	const toggleDockMagnification = () => {
+		const next = !dockMagnificationEnabled;
+		setDockMagnificationEnabled(next);
+		saveSetting("bloom-dock-magnification", String(next));
+	};
+
+	const handleDockMagnificationScaleChange = (val: number) => {
+		setDockMagnificationScale(val);
+		saveSetting("bloom-dock-magnification-scale", String(val));
+	};
+
+	const handleDockIconSizeChange = (val: string) => {
+		setDockIconSize(val);
+		saveSetting("bloom-dock-icon-size", val);
 	};
 
 	const toggleDockIconOnly = () => {
@@ -1051,6 +1082,12 @@ export function useSettings() {
 		handleDockEdgeDelayChange,
 		dockPreviewEnabled,
 		toggleDockPreview,
+		dockMagnificationEnabled,
+		toggleDockMagnification,
+		dockMagnificationScale,
+		handleDockMagnificationScaleChange,
+		dockIconSize,
+		handleDockIconSizeChange,
 		dockIconOnly,
 		toggleDockIconOnly,
 		dockSeparatorEnabled,

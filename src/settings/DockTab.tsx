@@ -11,6 +11,7 @@ import {
 	Sparkles,
 	RotateCcw,
 	Timer,
+	ZoomIn,
 	LayoutPanelLeft,
 	HardDrive,
 	Trash2,
@@ -79,11 +80,12 @@ function DrivePicker({
 }
 
 const START_ICON_PRESETS = [
-	{ key: "default", src: "/bloom.png", label: "Bloom" },
-	{ key: "bloom-colorful", src: "/bloom-colorful.png", label: "Colorful" },
-	{ key: "bloom-golden", src: "/bloom-golden.png", label: "Golden" },
-	{ key: "bloom-biscuit", src: "/bloom-biscuit.png", label: "Orange" },
-	{ key: "windows", src: "/windows-11.png", label: "Windows" }
+	{ key: "default", src: "/meera.png", label: "MEERA Signature" },
+	{ key: "meera-neon", src: "/meera-neon.png", label: "Neon Iris" },
+	{ key: "meera-gold", src: "/meera-gold.png", label: "Royal Gold" },
+	{ key: "meera-dark", src: "/meera-dark.png", label: "Obsidian" },
+	{ key: "windows", src: "/windows-11.png", label: "Windows" },
+	{ key: "bloom-colorful", src: "/bloom-colorful.png", label: "Classic Bloom" }
 ];
 
 const startIconTileStyle = (active: boolean): CSSProperties => ({
@@ -135,6 +137,12 @@ interface DockTabProps {
 	handleRemoveDockExtraFolder: (path: string) => void;
 	startIcon: string;
 	handleStartIconChange: (icon: string) => void;
+	dockMagnificationEnabled?: boolean;
+	toggleDockMagnification?: () => void;
+	dockMagnificationScale?: number;
+	handleDockMagnificationScaleChange?: (val: number) => void;
+	dockIconSize?: string;
+	handleDockIconSizeChange?: (val: string) => void;
 }
 
 export function DockTab({
@@ -170,6 +178,12 @@ export function DockTab({
 	handleAddDockExtraFolder,
 	handleRemoveDockExtraFolder,
 	startIcon,
+	dockMagnificationEnabled = true,
+	toggleDockMagnification,
+	dockMagnificationScale = 1.35,
+	handleDockMagnificationScaleChange,
+	dockIconSize = "medium",
+	handleDockIconSizeChange,
 	handleStartIconChange
 }: DockTabProps) {
 	const handleStartIconUpload = (e: ChangeEvent<HTMLInputElement>) => {
@@ -240,6 +254,57 @@ export function DockTab({
 								<span className="slider"></span>
 							</label>
 						</SettingRow>
+
+						<SettingRow
+							icon={ZoomIn}
+							label="macOS Hover Magnification"
+							desc="Fluid parabolic icon magnification on cursor hover"
+						>
+							<label className="toggle-switch">
+								<input
+									type="checkbox"
+									checked={dockMagnificationEnabled}
+									onChange={toggleDockMagnification}
+								/>
+								<span className="slider"></span>
+							</label>
+						</SettingRow>
+
+						{dockMagnificationEnabled && handleDockMagnificationScaleChange && (
+							<SettingRow
+								icon={ZoomIn}
+								label="Magnification Scale"
+								desc={`Peak hover scale factor: ${dockMagnificationScale.toFixed(2)}x`}
+							>
+								<input
+									type="range"
+									min="1.1"
+									max="1.6"
+									step="0.05"
+									value={dockMagnificationScale}
+									onChange={(e) => handleDockMagnificationScaleChange(parseFloat(e.target.value))}
+									className="settings-slider"
+								/>
+							</SettingRow>
+						)}
+
+						{handleDockIconSizeChange && (
+							<SettingRow
+								icon={Circle}
+								label="Dock Icon Size"
+								desc="Base dimension of applications in the dock"
+							>
+								<select
+									className="settings-select"
+									value={dockIconSize}
+									onChange={(e) => handleDockIconSizeChange(e.target.value)}
+								>
+									<option value="small">Small (32px)</option>
+									<option value="medium">Medium (36px)</option>
+									<option value="large">Large (44px)</option>
+								</select>
+							</SettingRow>
+						)}
 
 						<SettingRow icon={Circle} label="Icon Only" desc="Remove icon background and padding">
 							<label className="toggle-switch">

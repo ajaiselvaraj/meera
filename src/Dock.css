@@ -783,3 +783,29 @@ body {
 	background: #888;
 	box-shadow: none;
 }
+
+/* Dock icon sizes */
+.dock-icon-size-small .dock-icon {
+	width: 32px;
+	height: 32px;
+}
+.dock-icon-size-small .dock-icon img {
+	width: 24px;
+	height: 24px;
+}
+.dock-icon-size-medium .dock-icon {
+	width: 36px;
+	height: 36px;
+}
+.dock-icon-size-medium .dock-icon img {
+	width: 28px;
+	height: 28px;
+}
+.dock-icon-size-large .dock-icon {
+	width: 44px;
+	height: 44px;
+}
+.dock-icon-size-large .dock-icon img {
+	width: 34px;
+	height: 34px;
+}

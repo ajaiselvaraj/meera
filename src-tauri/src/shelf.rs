@@ -107,7 +107,7 @@ impl ShelfDropTarget {
 
         // Bound the scan by the allocation: a malformed data object could
         // offer a buffer without a terminator.
-        let alloc_units = (GlobalSize(medium.u.hGlobal) / 2) as usize;
+        let alloc_units = GlobalSize(medium.u.hGlobal) / 2;
         let max_units = alloc_units.min(MAX_TEXT_UNITS);
         let mut len = 0usize;
         while len < max_units && *ptr.add(len) != 0 {

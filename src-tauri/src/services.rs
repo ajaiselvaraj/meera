@@ -877,6 +877,7 @@ pub fn setup_audio_visualization(app_handle: AppHandle) {
                                         {
                                             let mut total_mag = 0.0f32;
                                             let mut count = 0u32;
+                                            #[allow(clippy::needless_range_loop)]
                                             for bin in bin_start..bin_end {
                                                 if bin >= FFT_SIZE / 2 {
                                                     break;
@@ -1928,7 +1929,7 @@ pub fn setup_brightness_worker() {
         let locator: IWbemLocator = match CoCreateInstance(&WbemLocator, None, CLSCTX_ALL) {
             Ok(l) => l,
             Err(_) => {
-                let _ = CoUninitialize();
+                CoUninitialize();
                 return;
             }
         };
@@ -1945,7 +1946,7 @@ pub fn setup_brightness_worker() {
         ) {
             Ok(s) => s,
             Err(_) => {
-                let _ = CoUninitialize();
+                CoUninitialize();
                 return;
             }
         };
@@ -2062,7 +2063,7 @@ pub fn setup_brightness_worker() {
             // 2. Desktop external monitor via Physical Monitor API (DXVA2 DDC/CI)
             set_physical_monitors_brightness(brightness);
         }
-        let _ = CoUninitialize();
+        CoUninitialize();
     });
 }
 
@@ -4116,7 +4117,7 @@ pub unsafe extern "system" fn enum_windows_proc(hwnd: HWND, lparam: LPARAM) -> B
                     let is_browser_pwa = is_browser_host
                         && window_aumid
                             .as_deref()
-                            .map_or(false, crate::commands::is_browser_pwa_aumid);
+                            .is_some_and(crate::commands::is_browser_pwa_aumid);
 
                     let final_name = if ((is_browser_host
                         && (is_browser_pwa || window_aumid.is_none()))

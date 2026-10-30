@@ -1479,3 +1479,15 @@ input:checked + .slider:before {
 	background: rgba(239, 68, 68, 0.25);
 	color: #ef4444;
 }
+
+.settings-shortcut-badge {
+	padding: 3px 8px;
+	border-radius: 6px;
+	background: var(--bloom-group-bg, rgba(255, 255, 255, 0.08));
+	border: 1px solid var(--bloom-border, rgba(255, 255, 255, 0.12));
+	font-size: 11px;
+	font-weight: 500;
+	letter-spacing: 0.3px;
+	color: var(--bloom-text, white);
+	user-select: none;
+}
