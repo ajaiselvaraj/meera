@@ -185,4 +185,6 @@ Get-AuthenticodeSignature "src-tauri\target\release\meera.exe", "src-tauri\targe
 - **Security & Privacy:** **READY**. All remote telemetry, announcement polling, updater requests, insecure HTTP endpoints, and command injection risks have been removed or mitigated.
 - **Settings Migration:** **READY**. Verified non-destructive migration preserves user configurations.
 - **Release Artifacts:** **READY**. All 3 release artifacts (`meera.exe`, NSIS setup, WiX MSI) exist, are validated, and pass entrypoint execution checks.
+- **About Page & Controls Fix:** **VERIFIED**. Author attribution ("Created by AJAI SELVARAJ") prominently displayed below the uppercase version badge; upstream GPL-3.0 attribution to Sehajveer Singh preserved; unstyled browser button reset and custom MEERA close button (`.header-close-btn`) styled with 8px rounded corners, subtle translucent dark background, light icon, and restrained red hover state; redundant sidebar traffic light close button removed to eliminate duplicate controls.
 - **Limitation Note:** The release artifacts are currently unsigned (`Authenticode Status: NotSigned`). They are completely functional for personal installation and testing, but require a trusted code-signing certificate prior to public mass distribution to avoid SmartScreen warnings.
+
