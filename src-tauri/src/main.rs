@@ -222,7 +222,10 @@ fn main() {
             bluetooth::bluetooth_unpair,
             bluetooth::bluetooth_refresh_buds,
             usb::usb_list_devices,
-            jack::jack_list_devices
+            jack::jack_list_devices,
+            get_ai_service_status,
+            start_ai_service,
+            stop_ai_service
         ])
         .setup(|app| {
             init_taskbar_marker(app.handle());

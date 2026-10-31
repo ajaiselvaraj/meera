@@ -43,6 +43,8 @@ import { deviceArtFor } from "./devices/deviceArtFor";
 import { deviceLookFor } from "./devices/deviceLooks";
 import type { BudLevel, BudsBattery } from "./devices/connectedDevices";
 import { ConnectedDevicesPanel } from "./components/ConnectedDevicesPanel";
+import { useNilaAI } from "./hooks/useNilaAI";
+import { AIIslandPanel } from "./components/AIIslandPanel";
 import { useConnectedDevices } from "./hooks/useConnectedDevices";
 import { isWiredAudio, usbArtFor, usbDisplayName, type UsbIdentity } from "./devices/usbArtFor";
 import type { DeviceArtKey } from "./devices/art";
@@ -62,7 +64,8 @@ import {
 	ChevronRight,
 	Inbox,
 	Music,
-	Zap
+	Zap,
+	Sparkles
 } from "lucide-react";
 
 /**
@@ -75,8 +78,8 @@ import {
  *   Dragging files onto the notch also opens the shelf. Wheel/swipe switches
  *   between tool panels, including when a live activity occupies the pill.
  */
-type NotchPanel = "calendar" | "command-center" | "devices";
-const NOTCH_PANELS: readonly NotchPanel[] = ["calendar", "command-center", "devices"];
+type NotchPanel = "calendar" | "command-center" | "devices" | "ai";
+const NOTCH_PANELS: readonly NotchPanel[] = ["calendar", "command-center", "devices", "ai"];
 const asNotchPanel = (value: unknown): NotchPanel | null =>
 	NOTCH_PANELS.includes(value as NotchPanel) ? (value as NotchPanel) : null;
 
@@ -453,7 +456,8 @@ type BloomMode =
 	| "wifi"
 	| "bluetooth"
 	| "devices"
-	| "device";
+	| "device"
+	| "ai";
 
 // A device that just connected or disconnected, shown briefly in the pill.
 interface DeviceAlert {
@@ -616,6 +620,8 @@ const TitleMarquee = ({ title }: { title: string }) => {
 };
 
 function App() {
+	const nilaAI = useNilaAI();
+
 	useEffect(() => {
 		return initTheme();
 	}, []);
@@ -1912,6 +1918,7 @@ function App() {
 	function panelEnabled(panel: NotchPanel) {
 		if (panel === "calendar") return settingsCalendarEnabled;
 		if (panel === "command-center") return settingsControlsPanelEnabled;
+		if (panel === "ai") return true;
 		return settingsDevicesPanelEnabled;
 	}
 
@@ -2143,7 +2150,7 @@ function App() {
 	};
 
 	// Expands the notch into a panel, or into an activity's own view.
-	const openNotch = (view: NotchPanel | "music" | "shelf") => {
+	const openNotch = (view: NotchPanel | "music" | "shelf" | "ai") => {
 		if (bloomMode === "announcement") return;
 		setIsOpen(true);
 		setBloomMode(view);
@@ -2158,6 +2165,23 @@ function App() {
 	rememberPanelRef.current = rememberPanel;
 
 	// Called by views that take typed input; see releaseNotchHover.
+	// Shortcut: Ctrl+Space or Alt+Space toggles MEERA AI Dynamic Island
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if ((e.ctrlKey && e.code === "Space") || (e.altKey && e.code === "Space")) {
+				e.preventDefault();
+				if (bloomMode === "ai" && isOpen) {
+					setIsOpen(false);
+					setBloomMode(collapsedMode);
+				} else {
+					openNotch("ai");
+				}
+			}
+		};
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [bloomMode, isOpen, collapsedMode]);
+
 	const setNotchPinned = useCallback((pinned: boolean) => {
 		notchPinnedRef.current = pinned;
 		if (!pinned && releaseDeferredRef.current) {
@@ -2167,6 +2191,23 @@ function App() {
 		// releaseNotchHover only touches refs and state setters.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
+
+	// Shortcut: Ctrl+Space or Alt+Space toggles MEERA AI Dynamic Island
+	useEffect(() => {
+		const handleKeyDown = (e: KeyboardEvent) => {
+			if ((e.ctrlKey && e.code === "Space") || (e.altKey && e.code === "Space")) {
+				e.preventDefault();
+				if (bloomMode === "ai" && isOpen) {
+					setIsOpen(false);
+					setBloomMode(collapsedMode);
+				} else {
+					openNotch("ai");
+				}
+			}
+		};
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [bloomMode, isOpen, collapsedMode]);
 
 	// In peek mode, briefly show the notch when a new track starts or playback
 	// resumes. The notch itself never switches views for media; the collapsed
@@ -3036,6 +3077,7 @@ function App() {
 
 	// Calculate width dynamically based on enabled features
 	const getDynamicWidth = () => {
+		if (bloomMode === "ai" && isOpen) return 420;
 		if (bloomMode === "announcement" && announcement && !announcementDismissed) return 380;
 		if (bloomMode === "device" && deviceAlert) return 330;
 		if (isCalendarMode) return 480;
@@ -3064,6 +3106,11 @@ function App() {
 	const getDynamicHeight = () => {
 		if (!isExpanded || !isVisible || isHidden) {
 			return isImpacted ? 28.9 : 44.2;
+		}
+		if (bloomMode === "ai") {
+			if (nilaAI.confirmation) return 260;
+			if (nilaAI.conversation.length > 0 || nilaAI.isProcessing) return 320;
+			return 190;
 		}
 		// Announcement card: body is line-clamped, so a fixed size fits both cases.
 		if (bloomMode === "announcement" && announcement && !announcementDismissed) {
@@ -3706,6 +3753,18 @@ function App() {
 																{updateAvailable && showUpdateIndicator && (
 																	<div className="update-dot" />
 																)}
+																<button
+																	type="button"
+																	className={`ai-pill-trigger-btn ${nilaAI.isProcessing ? "processing" : ""}`}
+																	onClick={(e) => {
+																		e.stopPropagation();
+																		openNotch("ai");
+																	}}
+																	title="Open MEERA AI (Ctrl+Space)"
+																	aria-label="Open MEERA AI"
+																>
+																	<Sparkles size={11} className={nilaAI.isProcessing ? "ai-spin" : ""} />
+																</button>
 															</div>
 
 															{/* Right: album art on a retained music session, otherwise status widgets */}
@@ -3798,6 +3857,31 @@ function App() {
 									)}
 								</AnimatePresence>
 
+								{/* MEERA AI Dynamic Island Panel */}
+								<AnimatePresence>
+									{bloomMode === "ai" && isOpen && (
+										<motion.div
+											key="ai-island-view"
+											className="ai-island-wrapper"
+											onClick={(e) => e.stopPropagation()}
+											initial={{ opacity: 0, scale: 0.98 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+											transition={{ type: "spring", stiffness: 400, damping: 30 }}
+											style={{ width: "100%", height: "100%", overflow: "hidden" }}
+										>
+											<AIIslandPanel
+												ai={nilaAI}
+												onClose={() => {
+													setIsOpen(false);
+													setBloomMode(collapsedMode);
+												}}
+												onPinChange={setNotchPinned}
+											/>
+										</motion.div>
+									)}
+								</AnimatePresence>
+
 								{/* Wi-Fi networks, opened from the controls panel's Wi-Fi tile */}
 								<AnimatePresence>
 									{bloomMode === "wifi" && (
@@ -3812,6 +3896,31 @@ function App() {
 												enabled={wifiEnabled}
 												onToggle={toggleWifi}
 												onBack={() => setBloomMode("command-center")}
+												onPinChange={setNotchPinned}
+											/>
+										</motion.div>
+									)}
+								</AnimatePresence>
+
+								{/* MEERA AI Dynamic Island Panel */}
+								<AnimatePresence>
+									{bloomMode === "ai" && isOpen && (
+										<motion.div
+											key="ai-island-view"
+											className="ai-island-wrapper"
+											onClick={(e) => e.stopPropagation()}
+											initial={{ opacity: 0, scale: 0.98 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+											transition={{ type: "spring", stiffness: 400, damping: 30 }}
+											style={{ width: "100%", height: "100%", overflow: "hidden" }}
+										>
+											<AIIslandPanel
+												ai={nilaAI}
+												onClose={() => {
+													setIsOpen(false);
+													setBloomMode(collapsedMode);
+												}}
 												onPinChange={setNotchPinned}
 											/>
 										</motion.div>
@@ -3838,6 +3947,31 @@ function App() {
 									)}
 								</AnimatePresence>
 
+								{/* MEERA AI Dynamic Island Panel */}
+								<AnimatePresence>
+									{bloomMode === "ai" && isOpen && (
+										<motion.div
+											key="ai-island-view"
+											className="ai-island-wrapper"
+											onClick={(e) => e.stopPropagation()}
+											initial={{ opacity: 0, scale: 0.98 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+											transition={{ type: "spring", stiffness: 400, damping: 30 }}
+											style={{ width: "100%", height: "100%", overflow: "hidden" }}
+										>
+											<AIIslandPanel
+												ai={nilaAI}
+												onClose={() => {
+													setIsOpen(false);
+													setBloomMode(collapsedMode);
+												}}
+												onPinChange={setNotchPinned}
+											/>
+										</motion.div>
+									)}
+								</AnimatePresence>
+
 								{/* Connected devices: everything connected, with its battery, by priority */}
 								<AnimatePresence>
 									{bloomMode === "devices" && (
@@ -3854,6 +3988,31 @@ function App() {
 												buds={budsById}
 												lowThreshold={lowBatteryThreshold}
 												onContentHeight={setDevicesContentHeight}
+											/>
+										</motion.div>
+									)}
+								</AnimatePresence>
+
+								{/* MEERA AI Dynamic Island Panel */}
+								<AnimatePresence>
+									{bloomMode === "ai" && isOpen && (
+										<motion.div
+											key="ai-island-view"
+											className="ai-island-wrapper"
+											onClick={(e) => e.stopPropagation()}
+											initial={{ opacity: 0, scale: 0.98 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+											transition={{ type: "spring", stiffness: 400, damping: 30 }}
+											style={{ width: "100%", height: "100%", overflow: "hidden" }}
+										>
+											<AIIslandPanel
+												ai={nilaAI}
+												onClose={() => {
+													setIsOpen(false);
+													setBloomMode(collapsedMode);
+												}}
+												onPinChange={setNotchPinned}
 											/>
 										</motion.div>
 									)}
@@ -3969,6 +4128,37 @@ function App() {
 													</button>
 												</div>
 
+												{/* MEERA AI Pill */}
+												<div
+													className={`cc-pill-tile ${nilaAI.connectionStatus === "connected" ? "active" : ""}`}
+													onClick={(e) => {
+														e.stopPropagation();
+														openNotch("ai");
+													}}
+													title="Open MEERA AI Assistant"
+												>
+													<div className="cc-pill-icon-wrapper">
+														<Sparkles size={16} />
+													</div>
+													<div className="cc-pill-info">
+														<span className="cc-pill-title">MEERA AI</span>
+														<span className="cc-pill-status">
+															{nilaAI.connectionStatus === "connected" ? nilaAI.model : "Offline"}
+														</span>
+													</div>
+													<button
+														className="cc-pill-more"
+														aria-label="Open AI"
+														title="Open AI"
+														onClick={(e) => {
+															e.stopPropagation();
+															openNotch("ai");
+														}}
+													>
+														<ChevronRight />
+													</button>
+												</div>
+
 												{/* Notch Mode Pill */}
 												<div
 													className={`cc-pill-tile ${notchMode === "fixed" ? "active" : ""}`}
@@ -3988,6 +4178,37 @@ function App() {
 																	: "Peek"}
 														</span>
 													</div>
+												</div>
+
+												{/* MEERA AI Pill */}
+												<div
+													className={`cc-pill-tile ${nilaAI.connectionStatus === "connected" ? "active" : ""}`}
+													onClick={(e) => {
+														e.stopPropagation();
+														openNotch("ai");
+													}}
+													title="Open MEERA AI Assistant"
+												>
+													<div className="cc-pill-icon-wrapper">
+														<Sparkles size={16} />
+													</div>
+													<div className="cc-pill-info">
+														<span className="cc-pill-title">MEERA AI</span>
+														<span className="cc-pill-status">
+															{nilaAI.connectionStatus === "connected" ? nilaAI.model : "Offline"}
+														</span>
+													</div>
+													<button
+														className="cc-pill-more"
+														aria-label="Open AI"
+														title="Open AI"
+														onClick={(e) => {
+															e.stopPropagation();
+															openNotch("ai");
+														}}
+													>
+														<ChevronRight />
+													</button>
 												</div>
 											</div>
 
@@ -4117,6 +4338,31 @@ function App() {
 									)}
 								</AnimatePresence>
 
+								{/* MEERA AI Dynamic Island Panel */}
+								<AnimatePresence>
+									{bloomMode === "ai" && isOpen && (
+										<motion.div
+											key="ai-island-view"
+											className="ai-island-wrapper"
+											onClick={(e) => e.stopPropagation()}
+											initial={{ opacity: 0, scale: 0.98 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+											transition={{ type: "spring", stiffness: 400, damping: 30 }}
+											style={{ width: "100%", height: "100%", overflow: "hidden" }}
+										>
+											<AIIslandPanel
+												ai={nilaAI}
+												onClose={() => {
+													setIsOpen(false);
+													setBloomMode(collapsedMode);
+												}}
+												onPinChange={setNotchPinned}
+											/>
+										</motion.div>
+									)}
+								</AnimatePresence>
+
 								{/* Device alert: a device connected or disconnected. A
 								    click opens the Bluetooth view. */}
 								<AnimatePresence
@@ -4165,6 +4411,31 @@ function App() {
 									)}
 								</AnimatePresence>
 
+								{/* MEERA AI Dynamic Island Panel */}
+								<AnimatePresence>
+									{bloomMode === "ai" && isOpen && (
+										<motion.div
+											key="ai-island-view"
+											className="ai-island-wrapper"
+											onClick={(e) => e.stopPropagation()}
+											initial={{ opacity: 0, scale: 0.98 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+											transition={{ type: "spring", stiffness: 400, damping: 30 }}
+											style={{ width: "100%", height: "100%", overflow: "hidden" }}
+										>
+											<AIIslandPanel
+												ai={nilaAI}
+												onClose={() => {
+													setIsOpen(false);
+													setBloomMode(collapsedMode);
+												}}
+												onPinChange={setNotchPinned}
+											/>
+										</motion.div>
+									)}
+								</AnimatePresence>
+
 								{/* Announcement Card */}
 								<AnimatePresence>
 									{bloomMode === "announcement" && announcement && !announcementDismissed && (
@@ -4204,6 +4475,31 @@ function App() {
 													Learn more
 												</button>
 											)}
+										</motion.div>
+									)}
+								</AnimatePresence>
+
+								{/* MEERA AI Dynamic Island Panel */}
+								<AnimatePresence>
+									{bloomMode === "ai" && isOpen && (
+										<motion.div
+											key="ai-island-view"
+											className="ai-island-wrapper"
+											onClick={(e) => e.stopPropagation()}
+											initial={{ opacity: 0, scale: 0.98 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+											transition={{ type: "spring", stiffness: 400, damping: 30 }}
+											style={{ width: "100%", height: "100%", overflow: "hidden" }}
+										>
+											<AIIslandPanel
+												ai={nilaAI}
+												onClose={() => {
+													setIsOpen(false);
+													setBloomMode(collapsedMode);
+												}}
+												onPinChange={setNotchPinned}
+											/>
 										</motion.div>
 									)}
 								</AnimatePresence>
@@ -4314,6 +4610,31 @@ function App() {
 													</div>
 												</div>
 											</div>
+										</motion.div>
+									)}
+								</AnimatePresence>
+
+								{/* MEERA AI Dynamic Island Panel */}
+								<AnimatePresence>
+									{bloomMode === "ai" && isOpen && (
+										<motion.div
+											key="ai-island-view"
+											className="ai-island-wrapper"
+											onClick={(e) => e.stopPropagation()}
+											initial={{ opacity: 0, scale: 0.98 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+											transition={{ type: "spring", stiffness: 400, damping: 30 }}
+											style={{ width: "100%", height: "100%", overflow: "hidden" }}
+										>
+											<AIIslandPanel
+												ai={nilaAI}
+												onClose={() => {
+													setIsOpen(false);
+													setBloomMode(collapsedMode);
+												}}
+												onPinChange={setNotchPinned}
+											/>
 										</motion.div>
 									)}
 								</AnimatePresence>
@@ -4432,6 +4753,31 @@ function App() {
 													</AnimatePresence>
 												</div>
 											)}
+										</motion.div>
+									)}
+								</AnimatePresence>
+
+								{/* MEERA AI Dynamic Island Panel */}
+								<AnimatePresence>
+									{bloomMode === "ai" && isOpen && (
+										<motion.div
+											key="ai-island-view"
+											className="ai-island-wrapper"
+											onClick={(e) => e.stopPropagation()}
+											initial={{ opacity: 0, scale: 0.98 }}
+											animate={{ opacity: 1, scale: 1 }}
+											exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+											transition={{ type: "spring", stiffness: 400, damping: 30 }}
+											style={{ width: "100%", height: "100%", overflow: "hidden" }}
+										>
+											<AIIslandPanel
+												ai={nilaAI}
+												onClose={() => {
+													setIsOpen(false);
+													setBloomMode(collapsedMode);
+												}}
+												onPinChange={setNotchPinned}
+											/>
 										</motion.div>
 									)}
 								</AnimatePresence>

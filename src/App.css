@@ -2486,3 +2486,68 @@ img {
 	font-size: 11px;
 	opacity: 0.6;
 }
+
+
+/* MEERA Dynamic Island AI Integration */
+.ai-island-wrapper {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	z-index: 10;
+}
+
+.ai-pill-trigger-btn {
+	background: transparent;
+	border: none;
+	padding: 2px 4px;
+	margin: 0 2px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	color: rgba(255, 255, 255, 0.45);
+	border-radius: 9999px;
+	transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ai-pill-trigger-btn:hover {
+	color: #60a5fa;
+	background: rgba(96, 165, 250, 0.15);
+	transform: scale(1.08);
+}
+
+.ai-pill-trigger-btn.connected {
+	color: #93c5fd;
+}
+
+.ai-pill-trigger-btn.connected:hover {
+	color: #bfdbfe;
+	box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+.ai-pill-trigger-btn.connecting {
+	color: #fbbf24;
+}
+
+.ai-pill-trigger-btn.error {
+	color: rgba(255, 255, 255, 0.25);
+}
+
+.ai-pill-trigger-btn.error:hover {
+	color: #f87171;
+}
+
+@keyframes aiSpin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.ai-spin {
+	animation: aiSpin 2s linear infinite;
+}

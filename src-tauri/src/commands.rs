@@ -4545,3 +4545,106 @@ pub async fn activate_tray_icon(tray_id: String) -> Result<(), String> {
         .await
         .map_err(|e| e.to_string())?
 }
+
+
+// ---------------------------------------------------------------------------
+// NILA AI Backend Integration Commands
+// ---------------------------------------------------------------------------
+
+pub static AI_SERVICE_PID: std::sync::Mutex<Option<u32>> = std::sync::Mutex::new(None);
+
+pub fn is_ai_service_listening() -> bool {
+    use std::net::{SocketAddr, TcpStream};
+    use std::time::Duration;
+    let addr: SocketAddr = "127.0.0.1:8765".parse().unwrap();
+    TcpStream::connect_timeout(&addr, Duration::from_millis(150)).is_ok()
+}
+
+pub fn is_ollama_listening() -> bool {
+    use std::net::{SocketAddr, TcpStream};
+    use std::time::Duration;
+    let addr: SocketAddr = "127.0.0.1:11434".parse().unwrap();
+    TcpStream::connect_timeout(&addr, Duration::from_millis(150)).is_ok()
+}
+
+#[tauri::command]
+pub async fn get_ai_service_status() -> Result<serde_json::Value, String> {
+    let running = is_ai_service_listening();
+    let ollama = is_ollama_listening();
+    Ok(serde_json::json!({
+        "running": running,
+        "port": 8765,
+        "ollama_active": ollama,
+        "endpoint": "ws://127.0.0.1:8765/ws",
+        "health_url": "http://127.0.0.1:8765/health"
+    }))
+}
+
+#[tauri::command]
+pub async fn start_ai_service() -> Result<serde_json::Value, String> {
+    use std::os::windows::process::CommandExt;
+    use std::time::Duration;
+
+    if is_ai_service_listening() {
+        return Ok(serde_json::json!({
+            "status": "already_running",
+            "port": 8765
+        }));
+    }
+
+    let nil_dir = std::path::PathBuf::from("C:\\project\\nil");
+    if !nil_dir.exists() {
+        return Err("NILA project directory C:\\project\\nil not found".into());
+    }
+
+    if !is_ollama_listening() {
+        let _ = std::process::Command::new("ollama")
+            .arg("serve")
+            .creation_flags(0x08000000) // CREATE_NO_WINDOW
+            .spawn();
+    }
+
+    let child = std::process::Command::new("python")
+        .args(["-m", "uvicorn", "backend.main:app", "--host", "127.0.0.1", "--port", "8765"])
+        .current_dir(&nil_dir)
+        .env("PYTHONPATH", &nil_dir)
+        .creation_flags(0x08000000) // CREATE_NO_WINDOW
+        .spawn()
+        .map_err(|e| format!("Failed to start NILA AI service: {e}"))?;
+
+    let pid = child.id();
+    if let Ok(mut lock) = AI_SERVICE_PID.lock() {
+        *lock = Some(pid);
+    }
+
+    for _ in 0..20 {
+        tokio::time::sleep(Duration::from_millis(250)).await;
+        if is_ai_service_listening() {
+            return Ok(serde_json::json!({
+                "status": "started",
+                "pid": pid,
+                "port": 8765
+            }));
+        }
+    }
+
+    Ok(serde_json::json!({
+        "status": "initializing",
+        "pid": pid,
+        "port": 8765
+    }))
+}
+
+#[tauri::command]
+pub async fn stop_ai_service() -> Result<serde_json::Value, String> {
+    use std::os::windows::process::CommandExt;
+    if let Ok(mut lock) = AI_SERVICE_PID.lock() {
+        if let Some(pid) = lock.take() {
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/T", "/PID", &pid.to_string()])
+                .creation_flags(0x08000000)
+                .output();
+        }
+    }
+    Ok(serde_json::json!({ "status": "stopped" }))
+}
