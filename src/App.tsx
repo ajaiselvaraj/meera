@@ -2172,6 +2172,9 @@ function App() {
 		if (bloomMode === "announcement") return;
 		setIsOpen(true);
 		setBloomMode(view);
+		if (view === "ai") {
+			getCurrentWebviewWindow().setFocus().catch(() => {});
+		}
 	};
 
 	const rememberPanel = (panel: NotchPanel) => {

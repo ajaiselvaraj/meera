@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, memo } from "react";
+import React, { useState, useRef, useEffect, useCallback, memo } from "react";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import {
 	Sparkles,
 	Send,
@@ -55,21 +56,34 @@ export const AIIslandPanel = memo(function AIIslandPanel({
 		};
 	}, [onPinChange]);
 
+	const focusInput = useCallback(() => {
+		getCurrentWebviewWindow().setFocus().catch(() => {});
+		inputRef.current?.focus();
+	}, []);
+
 	// Auto-focus input when panel opens
 	useEffect(() => {
-		const timer = setTimeout(() => {
-			inputRef.current?.focus();
-		}, 100);
+		const timer = setTimeout(focusInput, 120);
 		return () => clearTimeout(timer);
-	}, []);
+	}, [focusInput]);
 
 	// Scroll to bottom when conversation updates or during processing
 	useEffect(() => {
 		messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
 	}, [conversation, isProcessing, plan, currentAction]);
 
-	const handleSend = () => {
+	const handleSend = async () => {
 		if (!input.trim() || isProcessing) return;
+		const isConnected = connectionStatus === "connected";
+		if (!isConnected) {
+			const textToSend = input;
+			setInput("");
+			await startBackendService();
+			setTimeout(() => {
+				sendMessage(textToSend);
+			}, 2000);
+			return;
+		}
 		const sent = sendMessage(input);
 		if (sent) {
 			setInput("");
@@ -79,7 +93,7 @@ export const AIIslandPanel = memo(function AIIslandPanel({
 	const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
 		if (e.key === "Enter" && !e.shiftKey) {
 			e.preventDefault();
-			handleSend();
+			void handleSend();
 		} else if (e.key === "Escape") {
 			e.preventDefault();
 			onClose();
@@ -287,18 +301,24 @@ export const AIIslandPanel = memo(function AIIslandPanel({
 						placeholder={
 							isConnected
 								? "Ask MEERA AI or command your PC..."
-								: "AI backend offline — click Start above..."
+								: "AI backend offline — click Start above or type here..."
 						}
 						value={input}
 						onChange={(e) => setInput(e.target.value)}
+						onFocus={() => {
+							onPinChange?.(true);
+							getCurrentWebviewWindow().setFocus().catch(() => {});
+						}}
+						onBlur={() => onPinChange?.(false)}
+						onClick={focusInput}
 						onKeyDown={handleKeyDown}
-						disabled={!isConnected || isProcessing}
+						disabled={isProcessing}
 					/>
 					<button
 						type="button"
-						className={`ai-island-send-btn ${input.trim() && isConnected && !isProcessing ? "active" : ""}`}
-						onClick={handleSend}
-						disabled={!input.trim() || !isConnected || isProcessing}
+						className={`ai-island-send-btn ${input.trim() && !isProcessing ? "active" : ""}`}
+						onClick={() => void handleSend()}
+						disabled={!input.trim() || isProcessing}
 						aria-label="Send message"
 						title="Send (Enter)"
 					>
