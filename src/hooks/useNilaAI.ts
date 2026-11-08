@@ -5,6 +5,7 @@ export type AIConnectionStatus = "connecting" | "connected" | "disconnected" | "
 
 export type AIAssistantState =
 	| "IDLE"
+	| "WAKE_DETECTED"
 	| "LISTENING"
 	| "THINKING"
 	| "PLANNING"
@@ -114,7 +115,10 @@ export function useNilaAI(): UseNilaAIReturn {
 						const state = (data.state as AIAssistantState) || "IDLE";
 						setAiState(state);
 
-						if (state === "THINKING" || state === "PLANNING" || state === "EXECUTING") {
+						if (state === "WAKE_DETECTED" || state === "LISTENING") {
+							setIsProcessing(false);
+							setError(null);
+						} else if (state === "THINKING" || state === "PLANNING" || state === "EXECUTING") {
 							setIsProcessing(true);
 						} else if (state === "SUCCESS") {
 							setIsProcessing(false);

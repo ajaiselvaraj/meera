@@ -65,7 +65,8 @@ import {
 	Inbox,
 	Music,
 	Zap,
-	Sparkles
+	Sparkles,
+	Mic
 } from "lucide-react";
 
 /**
@@ -621,6 +622,14 @@ const TitleMarquee = ({ title }: { title: string }) => {
 
 function App() {
 	const nilaAI = useNilaAI();
+	const isAiListening = nilaAI.aiState === "WAKE_DETECTED" || nilaAI.aiState === "LISTENING";
+
+	// Auto-expand MEERA Dynamic Island when wake word is detected
+	useEffect(() => {
+		if (nilaAI.aiState === "WAKE_DETECTED" || nilaAI.aiState === "LISTENING") {
+			openNotch("ai");
+		}
+	}, [nilaAI.aiState]);
 
 	useEffect(() => {
 		return initTheme();
@@ -3071,6 +3080,7 @@ function App() {
 		if (bloomMode === "shelf") return 380;
 		if (bloomMode === "command-center" && isOpen) return 350;
 		if (bloomMode === "wifi" || bloomMode === "bluetooth" || bloomMode === "devices") return 350;
+		if (isAiListening && !isOpen) return 210;
 		if (showMusicOnStatusHover) {
 			return 170 + (settingsVisualizerEnabled ? 30 : 0);
 		}
@@ -3577,7 +3587,31 @@ function App() {
 												style={bloomMode === "device" || deviceAlertOnScreen ? { visibility: "hidden" } : undefined}
 											>
 												<AnimatePresence mode="wait">
-													{(showPowerPulse || showLowBatteryPulse || showUpdatePulse) &&
+													{isAiListening && !isOpen ? (
+														<motion.div
+															key="ai-listening-view"
+															initial={{ opacity: 0, scale: 0.95 }}
+															animate={{ opacity: 1, scale: 1 }}
+															exit={{ opacity: 0, scale: 0.95 }}
+															className="ai-listening-pill-content"
+															onClick={(e) => {
+																e.stopPropagation();
+																openNotch("ai");
+															}}
+														>
+															<div className="ai-rec-dot-wrap">
+																<span className="ai-rec-dot" />
+															</div>
+															<span className="ai-rec-label">Listening...</span>
+															<div className="ai-wave-bars">
+																<span className="ai-wave-bar" style={{ animationDelay: "0ms" }} />
+																<span className="ai-wave-bar" style={{ animationDelay: "150ms" }} />
+																<span className="ai-wave-bar" style={{ animationDelay: "300ms" }} />
+																<span className="ai-wave-bar" style={{ animationDelay: "450ms" }} />
+																<span className="ai-wave-bar" style={{ animationDelay: "200ms" }} />
+															</div>
+														</motion.div>
+													) : (showPowerPulse || showLowBatteryPulse || showUpdatePulse) &&
 													!isHovered ? (
 														showUpdatePulse ? (
 															<motion.div
@@ -3742,7 +3776,7 @@ function App() {
 															<div className="side-content right">
 																<button
 																	type="button"
-																	className={`ai-pill-trigger-btn ${nilaAI.connectionStatus} ${nilaAI.isProcessing ? "processing" : ""}`}
+																	className={`ai-pill-trigger-btn ${nilaAI.connectionStatus} ${isAiListening ? "listening" : ""} ${nilaAI.isProcessing ? "processing" : ""}`}
 																	onClick={(e) => {
 																		e.stopPropagation();
 																		if (bloomMode === "ai" && isOpen) {
@@ -3755,7 +3789,11 @@ function App() {
 																	title={`MEERA AI (${nilaAI.connectionStatus}) — Ctrl+Space`}
 																	aria-label="MEERA AI"
 																>
-																	<Sparkles size={11} className={nilaAI.isProcessing ? "ai-spin" : ""} />
+																	{isAiListening ? (
+																		<Mic size={11} className="ai-rec-pulse" />
+																	) : (
+																		<Sparkles size={11} className={nilaAI.isProcessing ? "ai-spin" : ""} />
+																	)}
 																</button>
 																{showCompactMusicIcons && (settingsAlbumArtEnabled || showMusicOnStatusHover) ? (
 																	<AnimatePresence mode="wait">

@@ -57,11 +57,11 @@ export function AboutTab({
 					<button
 						type="button"
 						className="about-author"
-						onClick={() => openUrl("https://github.com/SehajveerSingh2005/bloom")}
-						title="Sehajveer Singh on GitHub"
+						onClick={() => openUrl("https://github.com/ajaiselvaraj")}
+						title="Ajai Selvaraj on GitHub"
 					>
 						<GithubIcon size={12} />
-						<span>Sehajveer Singh</span>
+						<span>Ajai Selvaraj</span>
 					</button>{" "}
 					(GPL-3.0)
 				</p>
